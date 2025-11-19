@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>猫ラッシュ (Neko Rush)</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* 一些 Tailwind 还没覆盖到的 Three.js 专用样式或是需要强制覆盖的 */
+        body {
+            touch-action: none; /* 禁止移动端默认的拖动刷新 */
+            overflow: hidden;
+            font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+        }
+
+        /* 伤害飘字动画 */
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+        .damage-anim {
+            animation: floatUp 0.8s forwards;
+        }
+
+        /* 新纪录闪烁 */
+        @keyframes pulse-scale {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .animate-pulse-scale {
+            animation: pulse-scale 1s infinite;
+        }
+    </style>
+</head>
+<body class="bg-[#ffecf2] select-none">
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full"></div>
+
+    <!-- UI 层 -->
+    <div id="ui-layer" class="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
+
+        <!-- HUD -->
+        <div class="p-5 flex justify-between items-start text-gray-600 font-bold text-2xl drop-shadow-md pointer-events-none">
+            <div class="flex gap-6 pointer-events-auto">
+                <div id="score-display" class="bg-white/60 px-4 py-2 rounded-full backdrop-blur-sm">0</div>
+                <div id="cat-count-display" class="bg-white/60 px-4 py-2 rounded-full text-[#ff6b81] backdrop-blur-sm">1匹</div>
+            </div>
+
+            <!-- 暂停按钮 -->
+            <button id="pause-btn" class="pointer-events-auto bg-white border-2 border-[#ff9a9e] w-12 h-12 rounded-full flex items-center justify-center text-[#ff6b81] shadow-md active:scale-90 transition-transform hover:bg-pink-50">
+                ❚❚
+            </button>
+        </div>
+
+        <!-- 最高分 (绝对定位居中) -->
+        <div class="absolute top-5 left-1/2 -translate-x-1/2 bg-white/60 px-4 py-1 rounded-full text-gray-500 font-bold text-lg backdrop-blur-sm pointer-events-none">
+            ハイスコア: <span id="high-score-display">0</span>
+        </div>
+
+        <!-- 伤害文字容器 -->
+        <div id="damage-container" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+    </div>
+
+    <!-- 暂停菜单 -->
+    <div id="pause-screen" class="hidden absolute inset-0 bg-white/60 backdrop-blur-sm z-30 flex flex-col items-center justify-center pointer-events-auto">
+        <h1 class="text-5xl text-[#ff6b81] font-bold mb-8 drop-shadow-sm">一時停止</h1>
+        <button id="resume-btn" class="bg-gradient-to-b from-[#ff9a9e] to-[#fad0c4] text-white font-bold text-2xl py-3 px-12 rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all">
+            再開
+        </button>
+    </div>
+
+    <!-- 开始屏幕 -->
+    <div id="start-screen" class="absolute inset-0 bg-white/80 backdrop-blur-md z-20 flex flex-col items-center justify-center transition-opacity duration-300 pointer-events-auto">
+        <h1 class="text-6xl text-[#ff6b81] font-bold mb-4 drop-shadow-sm tracking-widest">猫ラッシュ</h1>
+        <p class="text-gray-500 text-xl mb-8 text-center leading-relaxed">
+            マウスを動かして操作<br>
+            <span class="text-sm opacity-70">（スピードアップしたよ！）</span>
+        </p>
+        <button id="start-btn" class="bg-gradient-to-b from-[#ff9a9e] to-[#fad0c4] text-white font-bold text-2xl py-4 px-16 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all mb-8">
+            スタート
+        </button>
+        <div class="bg-white/50 border-2 border-dashed border-gray-300 px-6 py-3 rounded-xl text-gray-400 text-sm">
+            マウス/指の位置に猫がついてきます
+        </div>
+    </div>
+
+    <!-- 游戏结束屏幕 -->
+    <div id="game-over-screen" class="hidden absolute inset-0 bg-white/90 backdrop-blur-md z-20 flex flex-col items-center justify-center pointer-events-auto">
+        <h1 class="text-5xl text-gray-700 font-bold mb-2">ゲームオーバー</h1>
+        <p class="text-gray-500 text-lg mb-4">最終スコア</p>
+        <div id="score-final" class="text-7xl text-[#333] font-bold mb-4">0</div>
+
+        <div id="new-record-msg" class="hidden text-[#ff6b81] font-bold text-2xl mb-8 animate-pulse-scale">
+            🎉 新記録達成！ 🎉
+        </div>
+
+        <button id="restart-btn" class="bg-gradient-to-b from-[#ff9a9e] to-[#fad0c4] text-white font-bold text-2xl py-4 px-16 rounded-full shadow-xl hover:scale-105 active:scale-95 transition-all">
+            もう一度遊ぶ
+        </button>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // ==========================================
+        // 核心配置
+        // ==========================================
+        const CONFIG = {
+            laneWidth: 16,
+            baseSpeed: 0.55,       // [调整] 初始速度从 0.35 提升到 0.55
+            maxSpeed: 1.3,         // [调整] 最大速度上限提升
+            acceleration: 0.00015, // [调整] 加速度提升 (0.00005 -> 0.00015)，变快的过程更明显
+            catRadius: 0.45,
+            maxCats: 150,
+            fogColor: 0xffecf2,
+            roadColor: 0xffffff,
+            gateDepth: 0.2
+        };
+
+        let state = {
+            isPlaying: false,
+            isPaused: false,
+            score: 0,
+            highScore: 0,
+            distance: 0,
+            currentSpeed: CONFIG.baseSpeed,
+            catCount: 1,
+            cats: [],
+            gates: [],
+            obstacles: [],
+            lastGateZ: -20,
+            lastObstacleZ: -10,
+            animTime: 0
+        };
+
+        // Three.js 全局变量
+        let scene, camera, renderer, clock;
+        let playerGroup;
+        let targetX = 0;
+        let currentX = 0;
+
+        // ==========================================
+        // 资源缓存 (性能优化核心)
+        // ==========================================
+        const ASSETS = {
+            geometries: {},
+            materials: []
+        };
+
+        function initAssets() {
+            ASSETS.geometries.body = new THREE.SphereGeometry(CONFIG.catRadius, 16, 16);
+            ASSETS.geometries.ear = new THREE.ConeGeometry(0.18, 0.35, 8);
+            ASSETS.geometries.eye = new THREE.SphereGeometry(0.07, 8, 8);
+            ASSETS.geometries.nose = new THREE.ConeGeometry(0.04, 0.05, 4);
+            ASSETS.geometries.tail = new THREE.CylinderGeometry(0.05, 0.02, 0.4, 6);
+            ASSETS.geometries.obstacle = new THREE.ConeGeometry(0.6, 1.5, 16);
+            ASSETS.geometries.obstacleBase = new THREE.BoxGeometry(1.2, 0.1, 1.2);
+
+            const palettes = [
+                { body: 0xffffff, ear: 0xffcccc },
+                { body: 0xffe4b5, ear: 0xffa07a },
+                { body: 0xdcdcdc, ear: 0xa9a9a9 },
+                { body: 0x333333, ear: 0x000000 },
+            ];
+
+            ASSETS.materials = palettes.map(p => ({
+                body: new THREE.MeshLambertMaterial({ color: p.body }),
+                ear: new THREE.MeshLambertMaterial({ color: p.ear }),
+                eye: new THREE.MeshBasicMaterial({ color: 0x000000 }),
+                nose: new THREE.MeshBasicMaterial({ color: 0xff9999 })
+            }));
+
+            ASSETS.obstacleMat = new THREE.MeshLambertMaterial({ color: 0xe84118 });
+            ASSETS.obstacleBaseMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        }
+
+        // ==========================================
+        // 初始化与主循环
+        // ==========================================
+        function init() {
+            const savedScore = localStorage.getItem('nekoRushHighScore');
+            if (savedScore) {
+                state.highScore = parseInt(savedScore);
+                updateHighScoreUI();
+            }
+
+            clock = new THREE.Clock();
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(CONFIG.fogColor);
+            scene.fog = new THREE.Fog(CONFIG.fogColor, 15, 60);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 9, 14);
+            camera.lookAt(0, 0, -5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            initAssets();
+
+            const ambientLight = new THREE.HemisphereLight(0xffffff, 0xffd1dc, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.set(1024, 1024);
+            const d = 15;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            const roadGeo = new THREE.PlaneGeometry(CONFIG.laneWidth, 200);
+            const roadMat = new THREE.MeshPhongMaterial({ color: CONFIG.roadColor });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.receiveShadow = true;
+            scene.add(road);
+
+            const gridHelper = new THREE.GridHelper(CONFIG.laneWidth, 20, 0xffbcd9, 0xffeff4);
+            gridHelper.position.y = 0.01;
+            gridHelper.scale.z = 10;
+            scene.add(gridHelper);
+
+            playerGroup = new THREE.Group();
+            scene.add(playerGroup);
+
+            addCats(1);
+
+            window.addEventListener('resize', onWindowResize, false);
+            document.addEventListener('mousemove', onPointerMove);
+            document.addEventListener('touchmove', onPointerMove, {passive: false});
+
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('restart-btn').addEventListener('click', resetGame);
+            document.getElementById('pause-btn').addEventListener('click', togglePause);
+            document.getElementById('resume-btn').addEventListener('click', togglePause);
+
+            animate();
+        }
+
+        // ==========================================
+        // 游戏逻辑
+        // ==========================================
+
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.add('pointer-events-none');
+            state.isPlaying = true;
+            state.isPaused = false;
+            clock.start();
+        }
+
+        function togglePause() {
+            if (!state.isPlaying) return;
+
+            state.isPaused = !state.isPaused;
+            const pauseScreen = document.getElementById('pause-screen');
+            const pauseBtn = document.getElementById('pause-btn');
+
+            if (state.isPaused) {
+                pauseScreen.classList.remove('hidden');
+                pauseBtn.innerText = "▶";
+                clock.stop();
+            } else {
+                pauseScreen.classList.add('hidden');
+                pauseBtn.innerText = "❚❚";
+                clock.start();
+            }
+        }
+
+        function resetGame() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('new-record-msg').classList.add('hidden');
+
+            cleanupScene();
+
+            state.catCount = 0;
+            state.score = 0;
+            state.distance = 0;
+            state.currentSpeed = CONFIG.baseSpeed;
+            state.lastGateZ = -20;
+            state.lastObstacleZ = -10;
+            state.animTime = 0;
+            state.isPaused = false;
+
+            playerGroup.position.x = 0;
+            targetX = 0;
+            currentX = 0;
+
+            addCats(1);
+            updateUI();
+            state.isPlaying = true;
+            clock.start();
+        }
+
+        function cleanupScene() {
+            for(let cat of state.cats) playerGroup.remove(cat);
+            state.cats = [];
+            for(let g of state.gates) scene.remove(g.mesh);
+            state.gates = [];
+            for(let o of state.obstacles) scene.remove(o.mesh);
+            state.obstacles = [];
+        }
+
+        function gameOver() {
+            state.isPlaying = false;
+            const finalScore = Math.floor(state.score);
+            document.getElementById('score-final').innerText = finalScore;
+
+            if (finalScore > state.highScore) {
+                state.highScore = finalScore;
+                localStorage.setItem('nekoRushHighScore', state.highScore);
+                updateHighScoreUI();
+                document.getElementById('new-record-msg').classList.remove('hidden');
+            }
+
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        function updateHighScoreUI() {
+            document.getElementById('high-score-display').innerText = state.highScore;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = Math.min(clock.getDelta(), 0.1);
+
+            if (!state.isPlaying || state.isPaused) {
+                if (!state.isPaused && state.cats.length > 0) {
+                    state.animTime += delta * 3;
+                    state.cats.forEach((cat, i) => {
+                        cat.position.y = CONFIG.catRadius + Math.sin(state.animTime + i) * 0.1;
+                    });
+                }
+                renderer.render(scene, camera);
+                return;
+            }
+
+            const timeScale = delta * 60;
+
+            // === 速度控制 ===
+            if (state.currentSpeed < CONFIG.maxSpeed) {
+                state.currentSpeed += CONFIG.acceleration * timeScale;
+            }
+
+            // === 玩家移动 ===
+            const moveFactor = 10 * delta;
+            currentX += (targetX - currentX) * moveFactor;
+            playerGroup.position.x = currentX;
+
+            // === 猫咪动画 ===
+            // [调整] 动画速度随游戏速度增加，看起来更带感
+            const jumpSpeed = 8 + (state.currentSpeed - CONFIG.baseSpeed) * 8;
+            state.animTime += delta * jumpSpeed;
+
+            for (let i = 0, l = state.cats.length; i < l; i++) {
+                const cat = state.cats[i];
+                const jumpPhase = state.animTime + i * 0.5;
+                cat.position.y = CONFIG.catRadius + Math.abs(Math.sin(jumpPhase)) * 0.3;
+                cat.rotation.z = Math.sin(jumpPhase) * 0.1;
+                if (cat.userData.tail) {
+                    cat.userData.tail.rotation.z = Math.sin(state.animTime * 2) * 0.5;
+                }
+            }
+
+            const moveStep = state.currentSpeed * timeScale;
+            state.distance += moveStep;
+            state.score += moveStep * 0.1;
+
+            updateWorldObjects(moveStep);
+
+            camera.position.x = currentX * 0.4;
+
+            updateUI();
+            renderer.render(scene, camera);
+        }
+
+        // ==========================================
+        // 对象管理
+        // ==========================================
+        function createCatMesh() {
+            const group = new THREE.Group();
+            const matSet = ASSETS.materials[Math.floor(Math.random() * ASSETS.materials.length)];
+
+            const body = new THREE.Mesh(ASSETS.geometries.body, matSet.body);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+
+            const earL = new THREE.Mesh(ASSETS.geometries.ear, matSet.ear);
+            earL.position.set(-0.25, 0.35, -0.1);
+            earL.rotation.set(-0.2, 0, 0.5);
+            group.add(earL);
+
+            const earR = new THREE.Mesh(ASSETS.geometries.ear, matSet.ear);
+            earR.position.set(0.25, 0.35, -0.1);
+            earR.rotation.set(-0.2, 0, -0.5);
+            group.add(earR);
+
+            const eyeL = new THREE.Mesh(ASSETS.geometries.eye, matSet.eye);
+            eyeL.position.set(-0.16, 0.15, 0.38);
+            group.add(eyeL);
+
+            const eyeR = new THREE.Mesh(ASSETS.geometries.eye, matSet.eye);
+            eyeR.position.set(0.16, 0.15, 0.38);
+            group.add(eyeR);
+
+            const nose = new THREE.Mesh(ASSETS.geometries.nose, matSet.nose);
+            nose.position.set(0, 0.08, 0.42);
+            nose.rotation.x = 1.5;
+            group.add(nose);
+
+            const tail = new THREE.Mesh(ASSETS.geometries.tail, matSet.body);
+            tail.position.set(0, 0.15, 0);
+            tail.rotation.x = -1;
+
+            const tailPivot = new THREE.Group();
+            tailPivot.position.set(0, 0.1, -0.35);
+            tailPivot.add(tail);
+            group.add(tailPivot);
+
+            group.userData.tail = tailPivot;
+            return group;
+        }
+
+        function addCats(count) {
+            if (state.catCount >= CONFIG.maxCats && count > 0) return;
+            const actualAdd = Math.min(count, CONFIG.maxCats - state.catCount);
+            for (let i = 0; i < actualAdd; i++) {
+                const cat = createCatMesh();
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * Math.sqrt((state.catCount + i) * 0.12);
+                cat.position.set(Math.cos(angle) * radius, CONFIG.catRadius, Math.sin(angle) * radius);
+                playerGroup.add(cat);
+                state.cats.push(cat);
+            }
+            state.catCount = state.cats.length;
+        }
+
+        function removeCats(count) {
+            if (count <= 0) return;
+            const toRemove = Math.min(count, state.cats.length);
+            showDamageText(toRemove);
+            for (let i = 0; i < toRemove; i++) {
+                const cat = state.cats.pop();
+                playerGroup.remove(cat);
+            }
+            state.catCount = state.cats.length;
+            if (state.catCount <= 0) gameOver();
+        }
+
+        function showDamageText(amount) {
+            const el = document.createElement('div');
+            el.className = 'absolute font-bold text-[#e84118] text-3xl damage-anim pointer-events-none drop-shadow-md';
+            el.innerText = `-${amount}`;
+            const x = 50 + (Math.random() - 0.5) * 20;
+            const y = 60 + (Math.random() - 0.5) * 10;
+            el.style.left = `${x}%`;
+            el.style.top = `${y}%`;
+            document.getElementById('damage-container').appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        // ==========================================
+        // 动态生成物体
+        // ==========================================
+        function spawnGate(zPos) {
+            const gateWidth = CONFIG.laneWidth / 2 - 0.5;
+            const leftIsGood = Math.random() > 0.5;
+            const leftOp = generateOperation(leftIsGood ? 'good' : 'bad');
+            const rightOp = generateOperation(leftIsGood ? 'bad' : 'good');
+            const leftGate = createGateMesh(leftOp, -gateWidth/2 - 0.2, zPos, gateWidth);
+            const rightGate = createGateMesh(rightOp, gateWidth/2 + 0.2, zPos, gateWidth);
+            state.gates.push({ mesh: leftGate, op: leftOp, hit: false });
+            state.gates.push({ mesh: rightGate, op: rightOp, hit: false });
+            scene.add(leftGate);
+            scene.add(rightGate);
+        }
+
+        function generateOperation(type) {
+            const r = Math.random();
+            let op, val, text, color;
+            if (type === 'good') {
+                color = '#00a8ff';
+                if (r < 0.6) {
+                    val = Math.floor(Math.random() * 10) + 5;
+                    op = 'add'; text = '+' + val;
+                } else {
+                    val = Math.floor(Math.random() * 2) + 2;
+                    op = 'mul'; text = 'x' + val;
+                }
+            } else {
+                color = '#e84118';
+                if (r < 0.6) {
+                    val = Math.floor(Math.random() * 10) + 5;
+                    op = 'sub'; text = '-' + val;
+                } else {
+                    val = 2;
+                    op = 'div'; text = '÷' + val;
+                }
+            }
+            return { type: op, val, text, color };
+        }
+
+        const TEXTURE_CACHE = {};
+        function getTexture(text, color) {
+            const key = text + color;
+            if (TEXTURE_CACHE[key]) return TEXTURE_CACHE[key];
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.fillRect(0,0, 256, 128);
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 256, 20);
+            ctx.fillRect(0, 108, 256, 20);
+            ctx.font = 'bold 80px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 128, 64);
+            const tex = new THREE.CanvasTexture(canvas);
+            TEXTURE_CACHE[key] = tex;
+            return tex;
+        }
+
+        function createGateMesh(op, x, z, width) {
+            const geometry = new THREE.BoxGeometry(width, 3, CONFIG.gateDepth);
+            const texture = getTexture(op.text, op.color);
+            const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, 1.5, z);
+            return mesh;
+        }
+
+        function createObstacleMesh(x, z) {
+            const group = new THREE.Group();
+            const cone = new THREE.Mesh(ASSETS.geometries.obstacle, ASSETS.obstacleMat);
+            cone.position.y = 0.75;
+            cone.castShadow = true;
+            group.add(cone);
+            const base = new THREE.Mesh(ASSETS.geometries.obstacleBase, ASSETS.obstacleBaseMat);
+            base.position.y = 0.05;
+            group.add(base);
+            group.position.set(x, 0, z);
+            return group;
+        }
+
+        function updateWorldObjects(moveStep) {
+            // [核心修改]
+            // 之前的公式是 const gateInterval = 30 * speedRatio;
+            // 这导致速度越快，距离越远，反应时间不变。
+            // 现在我们降低这个增长系数，让它在高速时“看起来”更密集一点，迫使玩家反应更快。
+
+            const speedRatio = state.currentSpeed / CONFIG.baseSpeed;
+
+            // 降低系数从 30 -> 25，并且让增长没那么线性 (用平方根或减小倍率)
+            // 这样速度快了，门还是会来得很快
+            const gateInterval = 25 + (speedRatio - 1) * 10;
+            const obsInterval = 12 + (speedRatio - 1) * 5;
+
+            if (state.distance - Math.abs(state.lastGateZ) > gateInterval) {
+                spawnGate(-60);
+                state.lastGateZ -= gateInterval;
+            }
+
+            if (state.distance - Math.abs(state.lastObstacleZ) > obsInterval) {
+                if (Math.random() < 0.45) {
+                    const x = (Math.random() - 0.5) * (CONFIG.laneWidth - 2);
+                    const obs = createObstacleMesh(x, -60);
+                    state.obstacles.push({ mesh: obs, hit: false });
+                    scene.add(obs);
+                }
+                state.lastObstacleZ -= obsInterval;
+            }
+
+            // 移动物体
+            // 门
+            for (let i = state.gates.length - 1; i >= 0; i--) {
+                const gate = state.gates[i];
+                gate.mesh.position.z += moveStep;
+
+                if (!gate.hit && gate.mesh.position.z > -1 && gate.mesh.position.z < 1) {
+                    const pX = playerGroup.position.x;
+                    const gX = gate.mesh.position.x;
+                    const gW = 7.5;
+                    if (pX > gX - gW/2 && pX < gX + gW/2) {
+                        applyGateEffect(gate.op);
+                        gate.hit = true;
+                        scene.remove(gate.mesh);
+                    }
+                }
+                if (gate.mesh.position.z > 15) {
+                    scene.remove(gate.mesh);
+                    state.gates.splice(i, 1);
+                }
+            }
+
+            // 障碍物
+            const groupRadius = Math.sqrt(state.catCount * 0.15) + 0.5;
+            for (let i = state.obstacles.length - 1; i >= 0; i--) {
+                const obs = state.obstacles[i];
+                obs.mesh.position.z += moveStep;
+
+                if (!obs.hit && obs.mesh.position.z > -1 && obs.mesh.position.z < 1) {
+                    const dist = Math.abs(playerGroup.position.x - obs.mesh.position.x);
+                    if (dist < groupRadius) {
+                        removeCats(5);
+                        obs.hit = true;
+                        scene.remove(obs.mesh);
+                    }
+                }
+                if (obs.mesh.position.z > 15) {
+                    scene.remove(obs.mesh);
+                    state.obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        function applyGateEffect(op) {
+            const val = op.val;
+            if (op.type === 'add') addCats(val);
+            else if (op.type === 'sub') removeCats(val);
+            else if (op.type === 'mul') addCats(state.catCount * (val - 1));
+            else if (op.type === 'div') removeCats(state.catCount - Math.floor(state.catCount / val));
+        }
+
+        function updateUI() {
+            document.getElementById('score-display').innerText = `スコア: ${Math.floor(state.score)}`;
+            document.getElementById('cat-count-display').innerText = `猫: ${state.catCount}匹`;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onPointerMove(event) {
+            if (!state.isPlaying || state.isPaused) return;
+            event.preventDefault();
+            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const normalizedX = (clientX / window.innerWidth) * 2 - 1;
+            targetX = normalizedX * (CONFIG.laneWidth / 2 - 2);
+        }
+
+        // 启动
+        init();
+
+    </script>
+</body>
+</html>

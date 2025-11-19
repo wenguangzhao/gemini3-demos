@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlowDent - Dental Clinic</title>
+
+    <!-- Google Fonts --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"DM Sans"', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'serif'],
+                    },
+                    colors: {
+                        primary: '#111827', // Dark gray/black
+                        secondary: '#3B82F6', // Accent Blue
+                        bg: '#F9FAFB', // Light gray bg
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React & ReactDOM --><script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- GSAP --><script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <!-- Icons --><script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #F8F9FB; /* Matching the design background */
+            overflow-x: hidden;
+        }
+        /* Custom utilities for the design's specific look */
+        .serif-italic {
+            font-family: "Playfair Display", serif;
+            font-style: italic;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .text-gradient-hover:hover {
+             background: linear-gradient(to right, #2563eb, #9333ea);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+        }
+        .image-reveal-container {
+            overflow: hidden;
+        }
+        .image-reveal-img {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icon Component Wrapper ---
+        // This fixes the "expected a string... but got object" error.
+        // It manually renders the SVG using the lucide global object.
+        const LucideIcon = ({ name, size = 24, className = "", ...props }) => {
+            const ref = useRef(null);
+
+            useEffect(() => {
+                if (!lucide) return;
+
+                const iconName = name;
+                const iconDef = lucide.icons ? lucide.icons[iconName] : lucide[iconName];
+
+                if (ref.current && iconDef) {
+                    const iconElement = lucide.createElement(iconDef);
+                    iconElement.setAttribute('width', size);
+                    iconElement.setAttribute('height', size);
+
+                    const baseClass = `lucide lucide-${name.toLowerCase()}`;
+                    if (className) {
+                        iconElement.setAttribute('class', `${baseClass} ${className}`);
+                    } else {
+                        iconElement.setAttribute('class', baseClass);
+                    }
+
+                    ref.current.innerHTML = '';
+                    ref.current.appendChild(iconElement);
+                }
+            }, [name, size, className]);
+
+            return <span ref={ref} style={{ display: 'inline-flex', alignItems: 'center' }} {...props}></span>;
+        };
+
+        // --- Components ---
+
+        const Navbar = () => (
+            <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-12 py-6 bg-[#F8F9FB]/80 backdrop-blur-md transition-all duration-300" id="navbar">
+                <div className="text-2xl font-bold tracking-tight text-primary flex items-center gap-1">
+                    GlowDent<span className="text-blue-500">.</span>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button className="p-2 hover:bg-gray-200 rounded-full transition">
+                        <LucideIcon name="Search" size={20} />
+                    </button>
+                    <button className="p-2 hover:bg-gray-200 rounded-full transition">
+                        <LucideIcon name="Menu" size={20} />
+                    </button>
+                </div>
+            </nav>
+        );
+
+        const Hero = () => {
+            const heroRef = useRef(null);
+
+            useEffect(() => {
+                const ctx = gsap.context(() => {
+                    gsap.from(".hero-text > *", {
+                        y: 50,
+                        opacity: 0,
+                        duration: 1,
+                        stagger: 0.2,
+                        ease: "power3.out"
+                    });
+                    gsap.from(".hero-image", {
+                        x: 100,
+                        opacity: 0,
+                        duration: 1.2,
+                        delay: 0.3,
+                        ease: "power3.out"
+                    });
+                    gsap.from(".hero-logo", {
+                        y: 20,
+                        opacity: 0,
+                        duration: 0.8,
+                        stagger: 0.1,
+                        delay: 1,
+                        ease: "back.out(1.7)"
+                    });
+                }, heroRef);
+                return () => ctx.revert();
+            }, []);
+
+            return (
+                <section ref={heroRef} className="pt-32 pb-20 px-6 md:px-12 min-h-screen flex flex-col md:flex-row items-center gap-12 overflow-hidden">
+                    {/* Left Content */}
+                    <div className="md:w-1/2 hero-text z-10">
+                        <h1 className="text-5xl md:text-7xl font-medium leading-[1.1] mb-6 text-primary">
+                            Caring for Your <br />
+                            <span className="serif-italic font-normal text-blue-600">Smile</span>, One Visit <br />
+                            at a Time.
+                        </h1>
+                        <p className="text-gray-500 text-lg mb-10 max-w-md leading-relaxed">
+                            Your smile is more than just an expression, it's a reflection of your confidence, health, and happiness.
+                        </p>
+                        <div className="flex items-center gap-8 mb-16">
+                            <button className="group bg-black text-white px-8 py-4 rounded-full flex items-center gap-2 hover:bg-blue-600 transition-colors duration-300">
+                                Set Appointment
+                                <LucideIcon name="ArrowUpRight" size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                            </button>
+                        </div>
+
+                        <div className="flex gap-6 grayscale opacity-60">
+                            {/* Mock Logos */}
+                            {['Basecamp', 'DocuSign', 'hopin', 'attentive'].map((logo, i) => (
+                                <span key={i} className="hero-logo text-xl font-bold text-gray-400">{logo}</span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Right Image */}
+                    <div className="md:w-1/2 relative hero-image">
+                        <div className="absolute top-4 right-4 z-20">
+                            <button className="bg-white/90 backdrop-blur px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1 hover:shadow-lg transition">
+                                Contact <LucideIcon name="ArrowUpRight" size={14} />
+                            </button>
+                        </div>
+                        <div className="relative rounded-[3rem] overflow-hidden shadow-2xl aspect-[4/5] md:aspect-square">
+                            <img
+                                src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=1000&auto=format&fit=crop"
+                                alt="Smiling Woman"
+                                className="w-full h-full object-cover"
+                            />
+
+                            {/* Floating Card */}
+                            <div className="absolute top-1/3 left-[-20px] glass-card p-4 rounded-2xl shadow-lg flex flex-col gap-2 max-w-[160px] animate-pulse-slow hidden md:flex">
+                                <div className="bg-white rounded-lg p-2 h-20 w-full mb-1 bg-blue-50 flex items-center justify-center">
+                                    <img src="https://cdn-icons-png.flaticon.com/512/3050/3050184.png" className="w-12 h-12 object-contain rotate-12" alt="Toothbrush" />
+                                </div>
+                                <div className="text-xs font-semibold">Glowing Toothbrush</div>
+                                <div className="flex justify-between text-[10px] text-gray-500">
+                                    <span>Bristle Type: Soft</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const About = () => {
+            const sectionRef = useRef(null);
+
+            useEffect(() => {
+                const ctx = gsap.context(() => {
+                    gsap.from(".about-heading", {
+                        scrollTrigger: { trigger: ".about-heading", start: "top 80%" },
+                        y: 50, opacity: 0, duration: 1
+                    });
+                    gsap.from(".about-stat", {
+                        scrollTrigger: { trigger: ".about-stats", start: "top 90%" },
+                        y: 30, opacity: 0, stagger: 0.2, duration: 0.8
+                    });
+                    gsap.from(".about-img-1", {
+                        scrollTrigger: { trigger: ".about-img-1", start: "top 85%" },
+                        scale: 0.8, opacity: 0, duration: 1, ease: "power2.out"
+                    });
+                     gsap.from(".about-img-2", {
+                        scrollTrigger: { trigger: ".about-img-2", start: "top 85%" },
+                        x: 50, opacity: 0, duration: 1, delay: 0.2
+                    });
+                }, sectionRef);
+                return () => ctx.revert();
+            }, []);
+
+            return (
+                <section ref={sectionRef} className="py-20 px-6 md:px-12 relative">
+                    <div className="flex justify-between items-center mb-10 border-b border-gray-200 pb-4">
+                        <span className="px-3 py-1 rounded-full border border-gray-300 text-sm font-medium">About Us</span>
+                        <span className="text-gray-400 text-sm">(01)</span>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-16 items-center mb-24">
+                        <div className="relative">
+                            <h2 className="about-heading text-4xl md:text-5xl leading-tight font-medium text-primary">
+                                We create lasting relationships — built on <span className="serif-italic text-blue-600">trust and care</span>. Our team is committed to making <span className="serif-italic text-blue-600">every visit</span> comfortable, and fit for you.
+                            </h2>
+                             {/* Small decorative image */}
+                            <div className="about-img-1 absolute -bottom-32 -right-10 w-48 h-32 rounded-2xl overflow-hidden shadow-lg border-4 border-white hidden md:block">
+                                <img src="https://images.unsplash.com/photo-1606811971618-4486d14f3f99?q=80&w=400&auto=format&fit=crop" className="w-full h-full object-cover" />
+                            </div>
+                        </div>
+
+                         {/* Stats */}
+                         <div className="about-stats flex justify-between items-end">
+                             {/* Floating Action Button */}
+                             <div className="bg-white rounded-full p-6 shadow-xl border border-gray-100 hover:scale-110 transition-transform cursor-pointer mb-10">
+                                <LucideIcon name="ArrowUpRight" size={32} className="text-primary" />
+                            </div>
+
+                            <div className="about-img-2 relative">
+                                <div className="rounded-[2rem] overflow-hidden shadow-xl w-full max-w-md aspect-[4/3]">
+                                    <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover" />
+                                </div>
+                                {/* Badge */}
+                                <div className="absolute -top-10 -left-10 bg-white rounded-full p-4 shadow-lg animate-spin-slow w-24 h-24 flex items-center justify-center border-2 border-blue-50">
+                                     <div className="text-[8px] font-bold text-center uppercase tracking-widest">
+                                         Best Dental <br/> 2024 <br/> Award
+                                     </div>
+                                </div>
+                            </div>
+                         </div>
+                    </div>
+
+                    <div className="about-stats grid grid-cols-3 gap-8 border-t border-gray-200 pt-8 max-w-xl">
+                        <div>
+                            <div className="text-4xl font-bold text-blue-600 mb-1">98<span className="text-sm text-gray-500 align-top">%</span></div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wide">Satisfaction</div>
+                        </div>
+                        <div>
+                            <div className="text-4xl font-bold text-blue-600 mb-1">5,000<span className="text-sm text-gray-500 align-top">+</span></div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wide">Smiles Transformed</div>
+                        </div>
+                        <div>
+                            <div className="text-4xl font-bold text-blue-600 mb-1">4.9<span className="text-lg text-yellow-400 align-top">★</span></div>
+                            <div className="text-xs text-gray-500 uppercase tracking-wide">Star Rating</div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const Services = () => {
+            const [activeService, setActiveService] = useState(1);
+            const sectionRef = useRef(null);
+
+            const services = [
+                { id: 0, title: "Orthodontics", img: "https://images.unsplash.com/photo-1609840114035-1c99d592426c?auto=format&fit=crop&w=800&q=80", desc: "Straighten your teeth with modern aligners." },
+                { id: 1, title: "Cosmetic Dentistry", img: "https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&w=800&q=80", desc: "A confident <span class='serif-italic text-blue-600'>smile</span> changes everything! Our <span class='serif-italic text-blue-600'>Cosmetic Dentistry</span> enhances your teeth's beauty while preserving their <span class='serif-italic text-blue-600'>natural</span> health and function." },
+                { id: 2, title: "Dental Restoration", img: "https://images.unsplash.com/photo-1606811893175-a0dc71442484?auto=format&fit=crop&w=800&q=80", desc: "Restore the function and integrity of your tooth structure." },
+                { id: 3, title: "Pediatric Dentistry", img: "https://images.unsplash.com/photo-1571772996211-2f02c9727629?auto=format&fit=crop&w=800&q=80", desc: "Specialized dental care for children and adolescents." },
+            ];
+
+            return (
+                <section ref={sectionRef} className="py-20 px-6 md:px-12 bg-white">
+                    <div className="flex justify-between items-center mb-16 border-b border-gray-200 pb-4">
+                        <span className="px-3 py-1 rounded-full border border-gray-300 text-sm font-medium">Our Services</span>
+                        <span className="text-gray-400 text-sm">(02)</span>
+                    </div>
+
+                    <div className="grid md:grid-cols-12 gap-12">
+                        {/* Sidebar Menu */}
+                        <div className="md:col-span-4 flex flex-col gap-6">
+                            {services.map((s, idx) => (
+                                <div
+                                    key={s.id}
+                                    onClick={() => setActiveService(idx)}
+                                    className={`cursor-pointer text-3xl md:text-4xl transition-colors duration-300 flex items-baseline gap-4 ${activeService === idx ? 'text-blue-600 font-medium' : 'text-gray-300 hover:text-gray-400'}`}
+                                >
+                                    {s.title}
+                                    <span className="text-sm font-sans text-gray-400 tracking-tighter">0{idx + 1}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Content Display */}
+                        <div className="md:col-span-8 grid md:grid-cols-2 gap-8 items-center animate-fade-in">
+                            <div className="rounded-[2rem] overflow-hidden h-80 shadow-lg relative group">
+                                <img src={services[activeService].img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                            </div>
+                            <div className="flex flex-col justify-between h-full py-4">
+                                <p className="text-2xl leading-relaxed text-gray-800 mb-8" dangerouslySetInnerHTML={{__html: services[activeService].desc}}></p>
+
+                                <div className="flex items-center justify-between mt-auto">
+                                    <div className="flex -space-x-3">
+                                        {[1,2,3].map(i => (
+                                            <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
+                                                <img src={`https://i.pravatar.cc/150?img=${i+10}`} />
+                                            </div>
+                                        ))}
+                                        <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">+</div>
+                                    </div>
+                                    <button className="bg-black text-white px-6 py-3 rounded-full text-sm flex items-center gap-2 hover:bg-blue-600 transition">
+                                        Read More <LucideIcon name="ArrowUpRight" size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const Testimonials = () => {
+             const sectionRef = useRef(null);
+
+             useEffect(() => {
+                 gsap.from(".testimonial-content", {
+                     scrollTrigger: { trigger: ".testimonial-content", start: "top 80%" },
+                     y: 50, opacity: 0, duration: 1
+                 });
+             }, []);
+
+            return (
+                <section ref={sectionRef} className="py-20 px-6 md:px-12 bg-[#F8F9FB]">
+                    <div className="flex justify-between items-center mb-16 border-b border-gray-200 pb-4">
+                        <span className="px-3 py-1 rounded-full border border-gray-300 text-sm font-medium">Testimonials</span>
+                        <span className="text-gray-400 text-sm">(03)</span>
+                    </div>
+
+                    <div className="grid md:grid-cols-12 gap-8 items-center testimonial-content">
+                        <div className="md:col-span-5">
+                            <div className="flex gap-4 items-end">
+                                <div className="rounded-[2rem] overflow-hidden w-full h-96 shadow-lg">
+                                    <img src="https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=800&q=80" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="rounded-2xl overflow-hidden w-32 h-32 shadow-md hidden md:block mb-8 -ml-10 z-10 border-4 border-white">
+                                    <img src="https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=400&q=80" className="w-full h-full object-cover" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-7 pl-0 md:pl-12">
+                            <h3 className="text-3xl md:text-4xl leading-snug font-medium mb-8">
+                                — The best <span className="serif-italic text-blue-600">dental experience</span> I've ever had!
+                                The team was so <span className="serif-italic text-blue-600">professional, care</span> and made me feel
+                                <span className="serif-italic text-blue-600"> comfortable</span>. Thanks <span className="font-bold">GlowDent</span>,
+                                Finally I love my smile!
+                            </h3>
+
+                            <div className="flex justify-between items-end border-t border-gray-200 pt-6">
+                                <div>
+                                    <div className="text-xl font-bold mb-1">Brenda - Customer</div>
+                                    <div className="flex items-center gap-1 text-yellow-400 text-sm">
+                                        <span className="text-black text-2xl font-bold mr-2">4.5</span>/5
+                                        <LucideIcon name="Star" size={14} fill="currentColor" />
+                                        <LucideIcon name="Star" size={14} fill="currentColor" />
+                                        <LucideIcon name="Star" size={14} fill="currentColor" />
+                                        <LucideIcon name="Star" size={14} fill="currentColor" />
+                                        <LucideIcon name="Star" size={14} fill="gray" className="text-gray-300" />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2 items-center">
+                                    <span className="text-xs text-gray-400 mr-4">01 - 05</span>
+                                    <button className="p-3 border border-gray-300 rounded-full hover:bg-black hover:text-white transition"><LucideIcon name="ChevronLeft" size={20} /></button>
+                                    <button className="p-3 border border-gray-300 rounded-full hover:bg-black hover:text-white transition"><LucideIcon name="ChevronRight" size={20} /></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            );
+        };
+
+        const Footer = () => (
+            <footer className="py-20 px-6 md:px-12 bg-gray-50 text-primary">
+                <div className="grid md:grid-cols-2 gap-16 mb-20">
+                    <div>
+                        <h2 className="text-5xl md:text-6xl mb-8 leading-tight">
+                            Illuminate Your <span className="serif-italic text-blue-600">Smile</span> with <br />
+                            <span className="serif-italic text-blue-600">Confidence & Care</span>
+                        </h2>
+                        <div className="relative max-w-md">
+                            <input type="email" placeholder="Send email to us" className="w-full bg-transparent border-b border-gray-300 py-4 focus:outline-none focus:border-blue-600 transition-colors" />
+                            <LucideIcon name="ArrowUpRight" className="absolute right-0 top-4 text-gray-400" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8 text-sm text-gray-500">
+                        <div>
+                            <h4 className="text-gray-300 uppercase tracking-wider text-xs mb-4">Location</h4>
+                            <p>4517 Washington Ave.<br/>Manchester, 39495</p>
+                        </div>
+                        <div>
+                            <h4 className="text-gray-300 uppercase tracking-wider text-xs mb-4">Call Us</h4>
+                            <p>+ (201) 555-0124</p>
+                        </div>
+                         <div>
+                            <h4 className="text-gray-300 uppercase tracking-wider text-xs mb-4">Email</h4>
+                            <p>hello@glowdent.com</p>
+                        </div>
+                         <div>
+                            <h4 className="text-gray-300 uppercase tracking-wider text-xs mb-4">Open Time</h4>
+                            <p>08:00am - 07:00pm</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16 text-sm text-gray-600">
+                    <div className="flex flex-col gap-3">
+                        <h4 className="text-gray-300 uppercase tracking-wider text-xs mb-2">General</h4>
+                        <a href="#" className="hover:text-blue-600">Home</a>
+                        <a href="#" className="hover:text-blue-600">About Us</a>
+                        <a href="#" className="hover:text-blue-600">Services</a>
+                        <a href="#" className="hover:text-blue-600">Testimonial</a>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        <h4 className="text-gray-300 uppercase tracking-wider text-xs mb-2">About</h4>
+                        <a href="#" className="hover:text-blue-600">Blog</a>
+                        <a href="#" className="hover:text-blue-600">Careers</a>
+                        <a href="#" className="hover:text-blue-600">Culture</a>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        <h4 className="text-gray-300 uppercase tracking-wider text-xs mb-2">Resources</h4>
+                        <a href="#" className="hover:text-blue-600">Free Content</a>
+                        <a href="#" className="hover:text-blue-600">Glossary</a>
+                        <a href="#" className="hover:text-blue-600">Tutorials</a>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        <h4 className="text-gray-300 uppercase tracking-wider text-xs mb-2">Social</h4>
+                        <div className="flex gap-4">
+                            <a href="#" className="p-2 bg-white rounded-full border hover:bg-blue-600 hover:text-white transition"><LucideIcon name="Instagram" size={16}/></a>
+                            <a href="#" className="p-2 bg-white rounded-full border hover:bg-blue-600 hover:text-white transition"><LucideIcon name="Twitter" size={16}/></a>
+                            <a href="#" className="p-2 bg-white rounded-full border hover:bg-blue-600 hover:text-white transition"><LucideIcon name="Youtube" size={16}/></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row justify-between text-xs text-gray-400 border-t border-gray-200 pt-8">
+                    <div>© 2025, GlowDent</div>
+                    <div className="flex gap-6 mt-4 md:mt-0">
+                        <a href="#">Terms & Condition</a>
+                        <a href="#">Privacy Policy</a>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const App = () => {
+            return (
+                <div className="antialiased selection:bg-blue-100">
+                    <Navbar />
+                    <Hero />
+                    <About />
+                    <Services />
+                    <Testimonials />
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

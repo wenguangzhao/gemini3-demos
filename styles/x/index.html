@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X (Japan) - Clone</title>
+
+    <!-- Google Fonts: Noto Sans JP for authentic Japanese typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                    },
+                    colors: {
+                        twitter: {
+                            black: '#000000',
+                            dark: '#16181c',
+                            blue: '#1d9bf0',
+                            gray: '#71767b',
+                            lightGray: '#e7e9ea',
+                            border: '#2f3336',
+                            hover: '#181818'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbar to match X's dark theme */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2f3336;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #536471;
+        }
+        body {
+            background-color: black;
+            color: #e7e9ea;
+        }
+    </style>
+</head>
+<body class="overflow-y-scroll">
+
+    <div class="min-h-screen flex justify-center mx-auto max-w-[1300px]">
+
+        <!-- Left Sidebar (Navigation) -->
+        <header class="hidden sm:flex flex-col w-[80px] xl:w-[275px] h-screen sticky top-0 px-2 xl:px-4 justify-between pb-4 border-r border-twitter-border bg-black z-50">
+            <div class="flex flex-col items-center xl:items-start space-y-1 mt-1">
+                <!-- Logo -->
+                <a href="#" class="p-3 rounded-full hover:bg-twitter-hover w-fit transition duration-200 flex items-center justify-center">
+                    <i class="fa-brands fa-x-twitter text-3xl text-white"></i>
+                </a>
+
+                <!-- Nav Items -->
+                <nav class="w-full space-y-1">
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-solid fa-house text-2xl"></i>
+                        <span class="hidden xl:block text-xl font-bold">ホーム</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-solid fa-magnifying-glass text-2xl"></i>
+                        <span class="hidden xl:block text-xl">話題を検索</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-regular fa-bell text-2xl"></i>
+                        <span class="hidden xl:block text-xl">通知</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-regular fa-envelope text-2xl"></i>
+                        <span class="hidden xl:block text-xl">メッセージ</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-solid fa-slash text-2xl"></i> <!-- Closest to Grok icon -->
+                        <span class="hidden xl:block text-xl">Grok</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-regular fa-rectangle-list text-2xl"></i>
+                        <span class="hidden xl:block text-xl">リスト</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-regular fa-bookmark text-2xl"></i>
+                        <span class="hidden xl:block text-xl">ブックマーク</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-solid fa-users text-2xl"></i>
+                        <span class="hidden xl:block text-xl">コミュニティ</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-brands fa-x-twitter text-2xl"></i>
+                        <span class="hidden xl:block text-xl">プレミアム</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-regular fa-user text-2xl"></i>
+                        <span class="hidden xl:block text-xl">プロフィール</span>
+                    </a>
+                    <a href="#" class="flex items-center gap-4 p-3 rounded-full hover:bg-twitter-hover transition duration-200 w-fit xl:w-full">
+                        <i class="fa-regular fa-circle-check text-2xl"></i>
+                        <span class="hidden xl:block text-xl">もっと見る</span>
+                    </a>
+                </nav>
+
+                <!-- Post Button -->
+                <button class="bg-twitter-blue text-white rounded-full p-3 xl:py-3.5 xl:px-24 mt-4 hover:bg-blue-600 transition duration-200 w-fit xl:w-full shadow-lg font-bold text-lg">
+                    <i class="fa-solid fa-feather xl:hidden"></i>
+                    <span class="hidden xl:block">ポストする</span>
+                </button>
+            </div>
+
+            <!-- User Profile Mini -->
+            <div class="flex items-center justify-between rounded-full hover:bg-twitter-hover p-3 cursor-pointer transition duration-200 w-full">
+                <div class="flex items-center gap-3">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User Avatar" class="w-10 h-10 rounded-full bg-gray-700">
+                    <div class="hidden xl:flex flex-col leading-tight">
+                        <span class="font-bold text-white">ユーザー名</span>
+                        <span class="text-twitter-gray">@username_jp</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-ellipsis hidden xl:block text-white"></i>
+            </div>
+        </header>
+
+        <!-- Main Feed (Center) -->
+        <main class="flex-1 border-r border-twitter-border max-w-[600px] w-full">
+
+            <!-- Sticky Header -->
+            <div class="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-twitter-border">
+                <div class="flex justify-around w-full h-[53px] items-center">
+                    <div class="flex-1 hover:bg-twitter-hover h-full flex justify-center items-center cursor-pointer transition relative group">
+                        <span class="font-bold text-white">おすすめ</span>
+                        <div class="absolute bottom-0 w-14 h-1 bg-twitter-blue rounded-full"></div>
+                    </div>
+                    <div class="flex-1 hover:bg-twitter-hover h-full flex justify-center items-center cursor-pointer transition text-twitter-gray font-medium">
+                        <span>フォロー中</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tweet Composer -->
+            <div class="px-4 py-3 border-b border-twitter-border flex gap-4">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0">
+                <div class="flex-1">
+                    <div class="mb-3">
+                        <input type="text" placeholder="いまどうしてる？" class="w-full bg-transparent text-xl text-white placeholder-twitter-gray border-none focus:ring-0 outline-none">
+                    </div>
+                    <!-- Composer Actions -->
+                    <div class="flex justify-between items-center border-t border-twitter-border/30 pt-3">
+                        <div class="flex gap-4 text-twitter-blue text-[19px]">
+                            <i class="fa-regular fa-image cursor-pointer hover:bg-blue-900/20 p-2 rounded-full transition"></i>
+                            <i class="fa-solid fa-gift cursor-pointer hover:bg-blue-900/20 p-2 rounded-full transition"></i>
+                            <i class="fa-solid fa-list cursor-pointer hover:bg-blue-900/20 p-2 rounded-full transition"></i>
+                            <i class="fa-regular fa-face-smile cursor-pointer hover:bg-blue-900/20 p-2 rounded-full transition"></i>
+                            <i class="fa-regular fa-calendar cursor-pointer hover:bg-blue-900/20 p-2 rounded-full transition"></i>
+                            <i class="fa-solid fa-location-dot cursor-pointer hover:bg-blue-900/20 p-2 rounded-full transition opacity-50"></i>
+                        </div>
+                        <button class="bg-twitter-blue text-white font-bold py-1.5 px-4 rounded-full hover:bg-blue-600 transition disabled:opacity-50 text-sm">
+                            ポストする
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Show New Tweets Bar -->
+            <div class="py-3 border-b border-twitter-border text-center hover:bg-twitter-hover cursor-pointer transition text-twitter-blue text-sm">
+                35件のポストを表示
+            </div>
+
+            <!-- Sample Tweet 1 (Replicating the Screenshot content in Japanese) -->
+            <article class="px-4 py-3 border-b border-twitter-border hover:bg-twitter-dark/30 cursor-pointer transition">
+                <div class="flex gap-3">
+                    <!-- Avatar -->
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ruanyf" class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0">
+
+                    <div class="flex-1">
+                        <!-- Tweet Header -->
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <span class="font-bold text-white hover:underline">ruanyf</span>
+                                <span class="text-twitter-gray">@ruanyf</span>
+                                <span class="text-twitter-gray">·</span>
+                                <span class="text-twitter-gray hover:underline">11時間</span>
+                            </div>
+                            <i class="fa-solid fa-ellipsis text-twitter-gray p-2 rounded-full hover:bg-twitter-blue/10 hover:text-twitter-blue transition"></i>
+                        </div>
+
+                        <!-- Tweet Content -->
+                        <p class="text-white text-[15px] leading-snug mb-3">
+                            あるベテランプログラマーが9つの有名な大規模言語モデルを使ってウェブ時計を生成し、それをウェブサイトに掲載しました（下の図）。
+                            <a href="#" class="text-twitter-blue hover:underline">clocks.brianmoore.com</a>
+                            <br><br>
+                            不思議なことに、このテストは一見難しくなさそうに見えますが、ほとんどのモデルが生成した効果は良くなく、中にはひどいものもありました。
+                            <br><br>
+                            今日、私はブログ記事を書き、VS Codeを使って国産の大規模モデルに接続してテストしてみました。
+                            <a href="#" class="text-twitter-blue hover:underline">ruanyf.com/blog/2025/11/v...</a>
+                        </p>
+
+                        <!-- Tweet Image/Card -->
+                        <div class="border border-twitter-border rounded-2xl overflow-hidden mt-3 mb-1">
+                            <div class="relative">
+                                <!-- Placeholder for the clock image grid -->
+                                <div class="bg-white w-full aspect-[4/3] grid grid-cols-3 grid-rows-3 gap-4 p-4">
+                                    <!-- Mocking the clock faces with simple CSS circles -->
+                                    <div class="border-2 border-black rounded-full relative"><div class="absolute w-1/2 h-1 bg-black top-1/2 left-1/2 origin-left -rotate-45"></div></div>
+                                    <div class="border-2 border-black rounded-full relative"><div class="absolute w-1/2 h-1 bg-red-500 top-1/2 left-1/2 origin-left rotate-12"></div></div>
+                                    <div class="border-2 border-black rounded-full relative"><div class="absolute w-1/2 h-1 bg-black top-1/2 left-1/2 origin-left rotate-90"></div></div>
+
+                                    <div class="border-2 border-black rounded-full relative"><div class="absolute w-1/2 h-1 bg-black top-1/2 left-1/2 origin-left rotate-180"></div></div>
+                                    <div class="border-2 border-black rounded-full relative"><div class="absolute w-1/2 h-1 bg-black top-1/2 left-1/2 origin-left -rotate-12"></div></div>
+                                    <div class="border-2 border-black rounded-full relative"><div class="absolute w-1/2 h-1 bg-red-500 top-1/2 left-1/2 origin-left rotate-45"></div></div>
+
+                                    <div class="border-2 border-black rounded-full relative"><div class="absolute w-1/2 h-1 bg-black top-1/2 left-1/2 origin-left rotate-0"></div></div>
+                                    <div class="border-2 border-black rounded-full relative"><div class="absolute w-1/2 h-1 bg-black top-1/2 left-1/2 origin-left -rotate-90"></div></div>
+                                    <div class="border-2 border-black rounded-full relative border-4"><div class="absolute w-1/2 h-1 bg-black top-1/2 left-1/2 origin-left rotate-12"></div></div>
+                                </div>
+                                <div class="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 font-mono">AI WORLD CLOCKS</div>
+                            </div>
+                        </div>
+
+                        <!-- Tweet Actions -->
+                        <div class="flex justify-between text-twitter-gray mt-3 text-sm max-w-[450px]">
+                            <div class="flex items-center gap-2 group cursor-pointer">
+                                <div class="p-2 rounded-full group-hover:bg-twitter-blue/10 group-hover:text-twitter-blue transition">
+                                    <i class="fa-regular fa-comment"></i>
+                                </div>
+                                <span class="group-hover:text-twitter-blue">18</span>
+                            </div>
+                            <div class="flex items-center gap-2 group cursor-pointer">
+                                <div class="p-2 rounded-full group-hover:bg-green-500/10 group-hover:text-green-500 transition">
+                                    <i class="fa-solid fa-retweet"></i>
+                                </div>
+                                <span class="group-hover:text-green-500">11</span>
+                            </div>
+                            <div class="flex items-center gap-2 group cursor-pointer">
+                                <div class="p-2 rounded-full group-hover:bg-pink-500/10 group-hover:text-pink-500 transition">
+                                    <i class="fa-regular fa-heart"></i>
+                                </div>
+                                <span class="group-hover:text-pink-500">91</span>
+                            </div>
+                            <div class="flex items-center gap-2 group cursor-pointer">
+                                <div class="p-2 rounded-full group-hover:bg-twitter-blue/10 group-hover:text-twitter-blue transition">
+                                    <i class="fa-solid fa-chart-simple"></i>
+                                </div>
+                                <span class="group-hover:text-twitter-blue">3.6万</span>
+                            </div>
+                            <div class="flex items-center gap-2 group cursor-pointer">
+                                <div class="p-2 rounded-full group-hover:bg-twitter-blue/10 group-hover:text-twitter-blue transition">
+                                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+             <!-- Sample Tweet 2 -->
+             <article class="px-4 py-3 border-b border-twitter-border hover:bg-twitter-dark/30 cursor-pointer transition">
+                <div class="flex gap-3">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Cat" class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-1">
+                                <span class="font-bold text-white hover:underline">汪脚卡門</span>
+                                <span class="text-twitter-gray">@asteargoesby</span>
+                                <span class="text-twitter-gray">·</span>
+                                <span class="text-twitter-gray hover:underline">2時間</span>
+                            </div>
+                            <i class="fa-solid fa-ellipsis text-twitter-gray p-2 rounded-full hover:bg-twitter-blue/10 hover:text-twitter-blue transition"></i>
+                        </div>
+                        <p class="text-white text-[15px] leading-snug mb-2">
+                            新しいAIモデルのベンチマーク結果が出たようです。今回は推論速度が大幅に向上しているとのこと。
+                        </p>
+                         <!-- Tweet Actions (Simplified) -->
+                         <div class="flex justify-between text-twitter-gray mt-3 text-sm max-w-[450px]">
+                            <i class="fa-regular fa-comment"></i>
+                            <i class="fa-solid fa-retweet"></i>
+                            <i class="fa-regular fa-heart"></i>
+                            <i class="fa-solid fa-chart-simple"></i>
+                            <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+        </main>
+
+        <!-- Right Sidebar (Search & Trends) -->
+        <aside class="hidden lg:block w-[350px] pl-8 py-1 sticky top-0 h-screen overflow-y-auto no-scrollbar">
+
+            <!-- Search Bar -->
+            <div class="sticky top-0 bg-black pb-3 pt-1 z-10">
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-magnifying-glass text-twitter-gray group-focus-within:text-twitter-blue"></i>
+                    </div>
+                    <input type="text" placeholder="検索" class="w-full bg-[#202327] text-white rounded-full py-3 pl-12 pr-4 focus:outline-none focus:bg-black focus:ring-1 focus:ring-twitter-blue border border-transparent placeholder-twitter-gray text-[15px]">
+                </div>
+            </div>
+
+            <!-- Premium Subscribe Box -->
+            <div class="bg-[#16181c] rounded-2xl p-4 mb-4 border border-twitter-border/30">
+                <h2 class="font-bold text-xl mb-2">プレミアムにサブスクライブ</h2>
+                <p class="text-[15px] text-white mb-3 leading-snug">サブスクライブして新機能をロック解除し、資格がある場合は収益分配を受け取りましょう。</p>
+                <button class="bg-twitter-blue text-white font-bold rounded-full px-6 py-2 hover:bg-blue-600 transition text-[15px]">
+                    購入する
+                </button>
+            </div>
+
+            <!-- Today's News (Trends) -->
+            <div class="bg-[#16181c] rounded-2xl pt-3 mb-4 border border-twitter-border/30">
+                <h2 class="font-extrabold text-xl px-4 pb-2">今日のニュース</h2>
+
+                <!-- Trend Item 1 -->
+                <div class="px-4 py-3 hover:bg-twitter-hover/50 cursor-pointer transition flex gap-3 flex-row-reverse items-start">
+                   <div class="w-[68px] h-[68px] bg-gray-600 rounded-xl flex-shrink-0 overflow-hidden">
+                        <img src="https://placehold.co/100x100/222/fff?text=Genshin" alt="News" class="w-full h-full object-cover">
+                   </div>
+                   <div>
+                       <p class="text-[15px] font-bold text-white leading-snug">原神が新イベント『Song of the Welkin Moon』を発表</p>
+                       <div class="text-[13px] text-twitter-gray mt-1 flex gap-1">
+                           <span>3時間前</span>
+                           <span>·</span>
+                           <span>エンターテイメント</span>
+                       </div>
+                   </div>
+                </div>
+
+                 <!-- Trend Item 2 -->
+                 <div class="px-4 py-3 hover:bg-twitter-hover/50 cursor-pointer transition flex gap-3 flex-row-reverse items-start">
+                    <div class="w-[68px] h-[68px] bg-gray-600 rounded-xl flex-shrink-0 overflow-hidden">
+                         <img src="https://placehold.co/100x100/222/fff?text=SEKAI" alt="News" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <p class="text-[15px] font-bold text-white leading-snug">プロジェクトセカイが新イベント開催を発表 Vivid BAD SQUAD...</p>
+                        <div class="text-[13px] text-twitter-gray mt-1 flex gap-1">
+                            <span>5時間前</span>
+                            <span>·</span>
+                            <span>エンターテイメント</span>
+                        </div>
+                    </div>
+                 </div>
+
+                 <!-- Trend Item 3 -->
+                 <div class="px-4 py-3 hover:bg-twitter-hover/50 cursor-pointer transition flex gap-3 flex-row-reverse items-start">
+                    <div class="w-[68px] h-[68px] bg-gray-600 rounded-xl flex-shrink-0 overflow-hidden">
+                         <img src="https://placehold.co/100x100/222/fff?text=F1" alt="News" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <p class="text-[15px] font-bold text-white leading-snug">Alpha Drive One が2025年MAMAに向けてビジュアルポスターを公開...</p>
+                        <div class="text-[13px] text-twitter-gray mt-1 flex gap-1">
+                            <span>3時間前</span>
+                            <span>·</span>
+                            <span>エンターテイメント</span>
+                        </div>
+                    </div>
+                 </div>
+
+                <div class="px-4 py-3 hover:bg-twitter-hover/50 cursor-pointer transition rounded-b-2xl">
+                    <span class="text-twitter-blue text-[15px]">さらに表示</span>
+                </div>
+            </div>
+
+            <!-- What's Happening (Trends List) -->
+            <div class="bg-[#16181c] rounded-2xl pt-3 mb-4 border border-twitter-border/30">
+                <h2 class="font-extrabold text-xl px-4 pb-2">おすすめトレンド</h2>
+
+                <!-- Trend List Item -->
+                <div class="px-4 py-3 hover:bg-twitter-hover/50 cursor-pointer transition relative">
+                    <div class="flex justify-between text-[13px] text-twitter-gray">
+                        <span>日本のトレンド</span>
+                        <i class="fa-solid fa-ellipsis hover:bg-blue-500/20 hover:text-twitter-blue p-1 rounded-full transition"></i>
+                    </div>
+                    <div class="font-bold text-white text-[15px] mt-0.5">スキャンダルライブ無料配信</div>
+                    <div class="text-[13px] text-twitter-gray mt-0.5">1,272 posts</div>
+                    <div class="text-[13px] text-twitter-gray mt-1">Promoted by ABEMA(アベマ)</div>
+                </div>
+
+                <div class="px-4 py-3 hover:bg-twitter-hover/50 cursor-pointer transition relative">
+                    <div class="flex justify-between text-[13px] text-twitter-gray">
+                        <span>日本のトレンド</span>
+                        <i class="fa-solid fa-ellipsis hover:bg-blue-500/20 hover:text-twitter-blue p-1 rounded-full transition"></i>
+                    </div>
+                    <div class="font-bold text-white text-[15px] mt-0.5">ニフティ</div>
+                    <div class="text-[13px] text-twitter-gray mt-0.5">1,272 posts</div>
+                </div>
+
+                <div class="px-4 py-3 hover:bg-twitter-hover/50 cursor-pointer transition relative">
+                    <div class="flex justify-between text-[13px] text-twitter-gray">
+                        <span>日本のトレンド</span>
+                        <i class="fa-solid fa-ellipsis hover:bg-blue-500/20 hover:text-twitter-blue p-1 rounded-full transition"></i>
+                    </div>
+                    <div class="font-bold text-white text-[15px] mt-0.5">加賀美ハヤト</div>
+                    <div class="text-[13px] text-twitter-gray mt-0.5">1.2万 posts</div>
+                </div>
+
+                <div class="px-4 py-3 hover:bg-twitter-hover/50 cursor-pointer transition rounded-b-2xl">
+                    <span class="text-twitter-blue text-[15px]">さらに表示</span>
+                </div>
+            </div>
+
+             <!-- Footer Links -->
+             <div class="px-4 text-[13px] text-twitter-gray flex flex-wrap gap-x-3 gap-y-1 mb-16">
+                <a href="#" class="hover:underline">利用規約</a>
+                <a href="#" class="hover:underline">プライバシーポリシー</a>
+                <a href="#" class="hover:underline">Cookieポリシー</a>
+                <a href="#" class="hover:underline">アクセシビリティ</a>
+                <a href="#" class="hover:underline">広告情報</a>
+                <a href="#" class="hover:underline flex items-center gap-1">もっと見る <i class="fa-solid fa-ellipsis"></i></a>
+                <p class="mt-1">© 2025 X Corp.</p>
+            </div>
+
+        </aside>
+
+        <!-- Bottom Mobile Nav -->
+        <nav class="sm:hidden fixed bottom-0 w-full bg-black border-t border-twitter-border flex justify-around py-3 z-50">
+            <a href="#" class="text-white"><i class="fa-solid fa-house text-2xl"></i></a>
+            <a href="#" class="text-twitter-gray"><i class="fa-solid fa-magnifying-glass text-2xl"></i></a>
+            <a href="#" class="text-twitter-gray"><i class="fa-solid fa-slash text-2xl"></i></a>
+            <a href="#" class="text-twitter-gray"><i class="fa-regular fa-bell text-2xl"></i></a>
+            <a href="#" class="text-twitter-gray"><i class="fa-regular fa-envelope text-2xl"></i></a>
+        </nav>
+
+        <!-- Floating Action Button (Mobile) -->
+        <button class="sm:hidden fixed bottom-20 right-4 bg-twitter-blue text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-50">
+            <i class="fa-solid fa-feather text-xl"></i>
+        </button>
+
+    </div>
+
+</body>
+</html>

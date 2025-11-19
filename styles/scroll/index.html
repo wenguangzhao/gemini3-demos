@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenFlow 3D - Scrollytelling Demo</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- GSAP & ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f2f2f7;
+            color: #1d1d1f;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* 3D Perspective */
+        .perspective-container {
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+
+        .card-3d-wrapper {
+            transform-style: preserve-3d;
+        }
+
+        /* --- 重写了卡片样式 --- */
+        .card {
+            /* 核心修复：强制圆角并裁剪溢出内容，防止直角出现 */
+            border-radius: 32px;
+            overflow: hidden;
+
+            /* 渲染优化 */
+            will-change: transform, opacity;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 20px rgba(255, 255, 255, 0.4) inset;
+
+            /* 注意：移除了 transform-style: preserve-3d，因为卡片内部是2D的，
+               移除它可以帮助浏览器更好地抗锯齿处理圆角 */
+            backface-visibility: hidden;
+            /* 某些浏览器下的抗锯齿 hack */
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            /* 边框调淡一点，融合得更好 */
+            border: 1.5px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.6;
+            z-index: 0;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-blue-200 selection:text-blue-900">
+
+    <!-- Background Atmosphere -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div id="blob1" class="blob w-[500px] h-[500px] bg-blue-300 top-[-10%] left-[-10%] mix-blend-multiply"></div>
+        <div id="blob2" class="blob w-[400px] h-[400px] bg-purple-300 bottom-[-10%] right-[-10%] mix-blend-multiply"></div>
+        <div id="blob3" class="blob w-[300px] h-[300px] bg-pink-300 top-[40%] left-[40%] mix-blend-multiply hidden md:block"></div>
+    </div>
+
+    <!-- Scroll Container -->
+    <div id="scroll-container" class="relative z-10" style="height: 800vh;">
+
+        <!-- Pinned Viewport -->
+        <div id="pinned-view" class="absolute top-0 left-0 w-full h-screen flex flex-col justify-center items-center overflow-hidden perspective-container">
+
+            <!-- 1. Opening Slogan -->
+            <div id="slogan-container" class="absolute z-50 text-center transform-style-3d px-4">
+                <h1 class="text-5xl md:text-8xl font-black leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-gray-800 to-gray-600 mb-4">
+                    Digital<br>Noise
+                </h1>
+                <p class="text-lg md:text-2xl text-gray-500 font-medium">その喧騒を、静寂へ。</p>
+            </div>
+
+            <!-- 2. Card Container -->
+            <div id="card-universe" class="relative w-full h-full flex justify-center items-center card-3d-wrapper z-30 pointer-events-none">
+
+                <!-- Mail -->
+                <div class="card glass absolute w-80 p-5 flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
+                            <span class="text-xs font-bold text-gray-500 uppercase">Mail</span>
+                        </div>
+                        <span class="text-xs text-gray-400">今</span>
+                    </div>
+                    <p class="font-bold text-sm text-gray-800">至急：プロジェクト計画書の確認</p>
+                    <p class="text-xs text-gray-500 line-clamp-2">クライアントからのフィードバックが届きました。</p>
+                </div>
+
+                <!-- SNS Notification -->
+                <div class="card glass absolute w-72 p-4 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gradient-to-tr from-yellow-400 to-red-500 rounded-xl shrink-0"></div>
+                    <div>
+                        <p class="font-bold text-sm">新しいフォロワー</p>
+                        <p class="text-xs text-gray-500">K.Tanakaさんがあなたをフォローしました</p>
+                    </div>
+                </div>
+
+                <!-- Music Player -->
+                <div class="card glass absolute w-80 p-5 flex items-center gap-4 bg-gray-900/90 border-gray-700 text-white">
+                    <div class="w-14 h-14 bg-green-400 rounded-lg shadow-lg relative overflow-hidden group">
+                        <div class="absolute inset-0 flex items-center justify-center">🎵</div>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-bold text-sm">Endless Loop</p>
+                        <p class="text-xs text-gray-400">The Distractions</p>
+                    </div>
+                </div>
+
+                <!-- Calendar -->
+                <div class="card glass absolute w-64 p-5 flex flex-col items-center justify-center text-center bg-white">
+                    <p class="text-xs text-red-500 font-bold uppercase">Meeting</p>
+                    <p class="text-3xl font-black text-gray-800 my-1">14:30</p>
+                    <p class="text-xs text-gray-500">Room A</p>
+                </div>
+
+                <!-- Weather -->
+                <div class="card glass absolute w-40 h-40 p-4 flex flex-col justify-between bg-sky-100 border-sky-200">
+                    <div class="text-xs font-bold text-sky-600">東京</div>
+                    <div class="text-4xl">⛈️</div>
+                    <div>
+                        <p class="font-bold text-lg text-gray-800">24°</p>
+                    </div>
+                </div>
+
+                <!-- News -->
+                <div class="card glass absolute w-80 p-4 flex gap-3">
+                    <div class="w-16 h-16 bg-gray-200 rounded-lg shrink-0 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=100&q=80')"></div>
+                    <div class="flex flex-col justify-center">
+                        <span class="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full w-fit mb-1">BREAKING</span>
+                        <p class="font-bold text-xs leading-tight">世界株価が大幅に変動</p>
+                    </div>
+                </div>
+
+                <!-- Message (Overriding border-radius for one corner) -->
+                <div class="card glass absolute w-72 p-4 rounded-tl-none bg-blue-500 text-white border-none shadow-blue-200" style="border-top-left-radius: 0 !important;">
+                    <p class="text-sm">今どこ？みんな待ってるよ！早く来て🙏</p>
+                </div>
+
+                <!-- Task List -->
+                <div class="card glass absolute w-64 p-5">
+                    <p class="font-bold text-sm mb-2">今日のタスク</p>
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="w-4 h-4 rounded border border-blue-500 flex items-center justify-center text-blue-500 text-xs">✓</div>
+                        <span class="text-xs text-gray-400 line-through">メール返信</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded border border-red-300"></div>
+                        <span class="text-xs text-red-500 font-bold">経費精算 !!</span>
+                    </div>
+                </div>
+
+                 <!-- Battery Low -->
+                 <div class="card glass absolute w-56 p-4 flex items-center gap-3 bg-gray-800/80 text-white backdrop-blur-xl border-none">
+                    <div class="w-8 h-12 border-2 border-red-500 rounded flex flex-col justify-end p-0.5">
+                        <div class="w-full h-[20%] bg-red-500 rounded-sm"></div>
+                    </div>
+                    <div>
+                        <p class="font-bold text-sm">バッテリー残量低下</p>
+                        <p class="text-xs text-gray-400">残り 10%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Action Button -->
+            <div id="action-btn" class="absolute z-40 opacity-0 pointer-events-auto cursor-pointer translate-y-10">
+                <button class="group relative bg-black text-white pl-6 pr-8 py-4 rounded-full text-xl font-bold hover:scale-110 transition-all duration-500 shadow-2xl flex items-center gap-3 overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <span class="relative z-10 bg-white text-black rounded-full w-8 h-8 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </span>
+                    <span class="relative z-10 tracking-widest">UNSUBSCRIBE ALL</span>
+                </button>
+            </div>
+
+            <!-- 4. Final Reveal -->
+            <div id="final-scene" class="absolute z-60 flex flex-col items-center justify-center opacity-0 pointer-events-none">
+                <div class="absolute w-[600px] h-[600px] border border-gray-200 rounded-full opacity-20 animate-pulse"></div>
+                <h2 class="text-4xl md:text-6xl font-black text-gray-900 tracking-[0.2em] mix-blend-overlay mb-2 text-center">ZEN<br>MODE</h2>
+                <div class="h-1 w-20 bg-black mt-4 mb-4"></div>
+                <p class="text-sm md:text-base tracking-widest text-gray-500">FOCUS ON WHAT MATTERS</p>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="fixed bottom-8 left-0 w-full flex justify-center pointer-events-none z-50 opacity-50">
+        <p class="text-xs font-bold tracking-widest text-gray-400 animate-bounce">SCROLL TO PLAY</p>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", (event) => {
+            gsap.registerPlugin(ScrollTrigger);
+
+            const cards = document.querySelectorAll('.card');
+            const sloganContainer = document.querySelector('#slogan-container');
+            const sloganText = sloganContainer.querySelector('h1');
+            const btn = document.querySelector('#action-btn');
+            const finalScene = document.querySelector('#final-scene');
+            const blobs = document.querySelectorAll('.blob');
+
+            // --- INITIAL SETUP ---
+            // Scatter cards far away initially
+            cards.forEach((card, i) => {
+                gsap.set(card, {
+                    x: (Math.random() - 0.5) * window.innerWidth * 1.5,
+                    y: (Math.random() - 0.5) * window.innerHeight * 1.5,
+                    z: Math.random() * -1500 - 500, // Very deep
+                    rotationX: (Math.random() - 0.5) * 180,
+                    rotationY: (Math.random() - 0.5) * 180,
+                    opacity: 0,
+                    scale: 0.5
+                });
+            });
+
+            gsap.set(btn, { scale: 0.8, opacity: 0, y: 250 });
+
+            // --- MAIN TIMELINE ---
+            let tl = gsap.timeline({
+                scrollTrigger: {
+                    trigger: "#scroll-container",
+                    start: "top top",
+                    end: "bottom bottom",
+                    scrub: 1, // More responsive scrub
+                    pin: "#pinned-view", // Pin the content while scrolling
+                    anticipatePin: 1
+                }
+            });
+
+            // 1. Slogan Fade Out
+            tl.to(sloganText, {
+                scale: 2,
+                opacity: 0,
+                filter: "blur(15px)",
+                duration: 2,
+                ease: "power2.in"
+            })
+            .to(blobs, { y: 200, duration: 10 }, 0);
+
+            // 2. Cards Fly In (The Chaos)
+            tl.to(cards, {
+                x: (i) => (Math.random() - 0.5) * window.innerWidth * 0.6,
+                y: (i) => (Math.random() - 0.5) * window.innerHeight * 0.6,
+                z: (i) => (Math.random() - 0.5) * 200, // Bring close to screen
+                rotationX: (i) => (Math.random() - 0.5) * 50,
+                rotationY: (i) => (Math.random() - 0.5) * 50,
+                opacity: 1,
+                scale: 1,
+                duration: 5,
+                stagger: { amount: 2, from: "random" },
+                ease: "power3.out"
+            }, "-=1.5");
+
+            // 3. Stacking (The Order)
+            tl.to(cards, {
+                x: 0,
+                y: (i) => i * -4,
+                z: (i) => -i * 10,
+                rotationX: 0,
+                rotationY: 0,
+                rotationZ: 0,
+                scale: (i) => 1 - (i * 0.04),
+                boxShadow: "0 15px 30px rgba(0,0,0,0.3)",
+                duration: 3,
+                ease: "expo.inOut"
+            }, "+=0.2")
+            .to("#card-universe", { rotationX: 10, duration: 3 }, "<");
+
+            // 4. Button Reveal
+            tl.to(btn, {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: "elastic.out(1, 0.75)"
+            });
+
+            // 5. Explosion (The Climax)
+            const frontCards = Array.from(cards).filter((_, i) => i % 2 === 0);
+            const backCards = Array.from(cards).filter((_, i) => i % 2 !== 0);
+
+            tl.addLabel("explode");
+
+            // Button press effect
+            tl.to(btn, { scale: 0.9, duration: 0.1 }, "explode");
+
+            // Cards blast away
+            tl.to(frontCards, {
+                z: 1500, // Fly past camera
+                x: (i) => (Math.random() - 0.5) * 4000,
+                y: (i) => (Math.random() - 0.5) * 4000,
+                rotationX: (Math.random() - 0.5) * 1000,
+                opacity: 0,
+                duration: 2,
+                ease: "power2.in"
+            }, "explode+=0.1")
+
+            .to(backCards, {
+                z: -3000, // Fly deep
+                x: (i) => (Math.random() - 0.5) * 3000,
+                y: (i) => (Math.random() - 0.5) * 3000,
+                rotationZ: 360,
+                opacity: 0,
+                duration: 2,
+                ease: "power2.in"
+            }, "explode+=0.1")
+
+            .to(btn, { opacity: 0, scale: 2, filter: "blur(10px)", duration: 0.5 }, "explode+=0.5")
+            .to("body", { backgroundColor: "#ffffff", duration: 0.5 }, "explode+=0.5");
+
+            // 6. Logo
+            tl.to(finalScene, {
+                opacity: 1,
+                scale: 1,
+                duration: 2,
+                ease: "power2.out"
+            }, "-=1");
+        });
+    </script>
+</body>
+</html>
