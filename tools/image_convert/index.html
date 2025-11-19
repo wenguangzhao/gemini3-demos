@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像変換ツール (Image Converter)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .input-group {
+            transition: all 0.3s ease;
+        }
+        .disabled-overlay {
+            background-color: rgba(229, 231, 235, 0.7);
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-4">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-slate-800 text-white p-6">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 画像変換ツール
+            </h1>
+            <p class="text-slate-400 text-sm mt-1">APIを使用して画像をアップロード、変換、最適化します</p>
+        </div>
+
+        <div class="p-6 space-y-8">
+
+            <!-- Step 1: Upload -->
+            <div id="upload-section" class="space-y-4">
+                <h2 class="text-lg font-semibold text-slate-700 border-l-4 border-blue-500 pl-3">1. 画像をアップロード</h2>
+
+                <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-colors relative" id="drop-zone">
+                    <input type="file" id="file-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <div class="space-y-2 pointer-events-none">
+                        <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400"></i>
+                        <p class="text-slate-600 font-medium">クリックして画像を選択、またはドラッグ＆ドロップ</p>
+                        <p class="text-xs text-slate-400">JPG, PNG, WebP, GIFなど (最大 20MB)</p>
+                    </div>
+                </div>
+
+                <div id="upload-status" class="hidden p-4 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-between">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin"></i> アップロード中...</span>
+                </div>
+            </div>
+
+            <!-- Step 2: Controls & Preview (Hidden initially) -->
+            <div id="editor-section" class="hidden space-y-8 fade-in">
+
+                <!-- Image Info & Delete -->
+                <div class="flex items-center justify-between bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div>
+                        <p class="text-sm text-slate-500">画像ID</p>
+                        <p class="font-mono font-bold text-slate-700" id="current-image-id">-</p>
+                    </div>
+                    <button id="delete-btn" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can"></i> ファイルを削除
+                    </button>
+                </div>
+
+                <h2 class="text-lg font-semibold text-slate-700 border-l-4 border-indigo-500 pl-3">2. パラメータ設定</h2>
+
+                <!-- Controls Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                    <!-- Dimensions -->
+                    <div class="space-y-3 p-4 bg-gray-50 rounded-lg">
+                        <label class="text-sm font-bold text-gray-700 block mb-2"><i class="fa-solid fa-ruler-combined"></i> サイズ (px)</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-xs text-gray-500">幅 (Width)</span>
+                                <input type="number" id="param-w" placeholder="自動" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <span class="text-xs text-gray-500">高さ (Height)</span>
+                                <input type="number" id="param-h" placeholder="自動" class="w-full mt-1 px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fit Mode -->
+                    <div class="space-y-1 p-4 bg-gray-50 rounded-lg">
+                        <label class="text-sm font-bold text-gray-700 block"><i class="fa-solid fa-crop-simple"></i> フィットモード (f)</label>
+                        <p class="text-xs text-gray-500 mb-2">リサイズ時の挙動を指定</p>
+                        <select id="param-f" class="w-full px-3 py-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="cover">Cover (切り抜き/デフォルト)</option>
+                            <option value="contain">Contain (全体表示)</option>
+                            <option value="fill">Fill (引き伸ばし)</option>
+                        </select>
+                    </div>
+
+                    <!-- Format & Quality -->
+                    <div class="space-y-2 p-4 bg-gray-50 rounded-lg">
+                        <label class="text-sm font-bold text-gray-700 block"><i class="fa-solid fa-file-image"></i> フォーマット & 画質</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="param-fm" class="w-full px-2 py-2 border rounded-md bg-white text-sm">
+                                <option value="">元の形式</option>
+                                <option value="webp">WebP (推奨)</option>
+                                <option value="jpg">JPEG</option>
+                                <option value="png">PNG</option>
+                                <option value="gif">GIF</option>
+                                <option value="tiff">TIFF</option>
+                                <option value="bmp">BMP</option>
+                            </select>
+                            <input type="number" id="param-q" min="1" max="100" value="80" class="w-full px-2 py-2 border rounded-md text-sm" placeholder="画質(1-100)">
+                        </div>
+                    </div>
+
+                    <!-- Gravity (Dependent on Fit) -->
+                    <div class="space-y-1 p-4 bg-gray-50 rounded-lg relative transition-opacity" id="group-g">
+                        <label class="text-sm font-bold text-gray-700 block"><i class="fa-solid fa-arrows-to-dot"></i> 基準位置 (g)</label>
+                        <p class="text-xs text-gray-500 mb-2">Cover/Containのみ有効</p>
+                        <select id="param-g" class="w-full px-3 py-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="center">Center (中央)</option>
+                            <option value="north">North (上)</option>
+                            <option value="south">South (下)</option>
+                            <option value="east">East (右)</option>
+                            <option value="west">West (左)</option>
+                            <option value="northeast">North-East (右上)</option>
+                            <option value="northwest">North-West (左上)</option>
+                            <option value="southeast">South-East (右下)</option>
+                            <option value="southwest">South-West (左下)</option>
+                        </select>
+                        <!-- Overlay for disabled state -->
+                        <div id="overlay-g" class="absolute inset-0 disabled-overlay rounded-lg hidden z-10"></div>
+                    </div>
+
+                    <!-- Background (Dependent on Fit & Format) -->
+                    <div class="space-y-1 p-4 bg-gray-50 rounded-lg relative transition-opacity" id="group-bg">
+                        <label class="text-sm font-bold text-gray-700 block"><i class="fa-solid fa-fill-drip"></i> 背景色 (bg)</label>
+                        <p class="text-xs text-gray-500 mb-2">Containのみ有効 (Hex 6桁)</p>
+                        <div class="flex gap-2">
+                            <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-100 text-gray-500 text-sm">#</span>
+                            <input type="text" id="param-bg" placeholder="ffffff" maxlength="6" class="block w-full flex-1 rounded-none rounded-r-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        </div>
+                        <div class="mt-2">
+                            <label class="inline-flex items-center text-xs cursor-pointer">
+                                <input type="checkbox" id="param-bg-transparent" class="form-checkbox h-4 w-4 text-blue-600 rounded">
+                                <span class="ml-2 text-gray-700">透明 (transparent) ※透過対応フォーマットのみ</span>
+                            </label>
+                        </div>
+                         <!-- Overlay for disabled state -->
+                         <div id="overlay-bg" class="absolute inset-0 disabled-overlay rounded-lg hidden z-10"></div>
+                    </div>
+
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-4 justify-center pt-4">
+                    <button id="generate-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-rotate"></i> 画像を更新・生成
+                    </button>
+                </div>
+
+                <!-- Result Area -->
+                <div class="border-t pt-8 space-y-4">
+                    <h2 class="text-lg font-semibold text-slate-700 border-l-4 border-green-500 pl-3">3. プレビュー & 出力</h2>
+
+                    <!-- URL Display -->
+                    <div class="bg-slate-800 rounded-lg p-3 flex items-center gap-2">
+                        <input type="text" id="result-url" readonly class="bg-transparent text-slate-300 text-xs w-full outline-none font-mono" value="...">
+                        <button id="copy-btn" class="text-white hover:text-blue-300 px-2" title="URLをコピー">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex gap-3">
+                        <a id="open-new-tab" href="#" target="_blank" class="flex-1 bg-white border border-slate-300 text-slate-700 py-2 rounded-lg text-center hover:bg-slate-50 transition-colors font-medium text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-external-link-alt"></i> 新しいタブで開く
+                        </a>
+                        <button id="download-btn" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-center hover:bg-green-700 transition-colors font-medium text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-download"></i> ダウンロード
+                        </button>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div class="bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAADFJREFUOE9j/P///38GKgAjDQaNg8bB4DAIxwCg5w6HwzAIhwCg5w6HwzAIh+Cg5w4HAJ6yH/H8R2W8AAAAAElFTkSuQmCC')] rounded-lg overflow-hidden border border-slate-200 min-h-[200px] flex items-center justify-center relative group">
+                        <img id="preview-img" src="" alt="Preview" class="max-w-full max-h-[600px] object-contain shadow-lg">
+                        <div id="preview-loading" class="absolute inset-0 bg-white/80 flex items-center justify-center hidden">
+                            <i class="fa-solid fa-spinner fa-spin text-3xl text-indigo-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://wgzhao.me/images';
+
+        // DOM Elements
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const uploadStatus = document.getElementById('upload-status');
+        const uploadSection = document.getElementById('upload-section');
+        const editorSection = document.getElementById('editor-section');
+        const currentImageIdEl = document.getElementById('current-image-id');
+        const deleteBtn = document.getElementById('delete-btn');
+        const generateBtn = document.getElementById('generate-btn');
+        const previewImg = document.getElementById('preview-img');
+        const resultUrlInput = document.getElementById('result-url');
+        const openNewTabBtn = document.getElementById('open-new-tab');
+        const downloadBtn = document.getElementById('download-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const previewLoading = document.getElementById('preview-loading');
+
+        // Parameters
+        const params = {
+            w: document.getElementById('param-w'),
+            h: document.getElementById('param-h'),
+            f: document.getElementById('param-f'),
+            fm: document.getElementById('param-fm'),
+            q: document.getElementById('param-q'),
+            g: document.getElementById('param-g'),
+            bg: document.getElementById('param-bg'),
+            bgTransparent: document.getElementById('param-bg-transparent'),
+        };
+
+        // Overlays for disabling groups
+        const groupG = document.getElementById('group-g');
+        const overlayG = document.getElementById('overlay-g');
+        const groupBg = document.getElementById('group-bg');
+        const overlayBg = document.getElementById('overlay-bg');
+
+        let currentImageId = null;
+
+        // --- Event Listeners ---
+
+        // 1. Upload Handling
+        fileInput.addEventListener('change', handleFileUpload);
+
+        // Drag and drop styling
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500', 'bg-blue-50');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileUpload();
+            }
+        });
+
+        // 2. UI Logic for Parameters (The requested constraints)
+        function updateUiConstraints() {
+            const fit = params.f.value;
+            const format = params.fm.value;
+
+            // Logic: Gravity (g) is only available if fit is 'cover' or 'contain'
+            if (fit === 'cover' || fit === 'contain') {
+                overlayG.classList.add('hidden');
+                groupG.classList.remove('opacity-50');
+                params.g.disabled = false;
+            } else {
+                overlayG.classList.remove('hidden');
+                groupG.classList.add('opacity-50');
+                params.g.disabled = true;
+            }
+
+            // Logic: Background (bg) is only available if fit is 'contain'
+            if (fit === 'contain') {
+                overlayBg.classList.add('hidden');
+                groupBg.classList.remove('opacity-50');
+                params.bg.disabled = false;
+                params.bgTransparent.disabled = false;
+            } else {
+                overlayBg.classList.remove('hidden');
+                groupBg.classList.add('opacity-50');
+                params.bg.disabled = true;
+                params.bgTransparent.disabled = true;
+                params.bgTransparent.checked = false; // Reset check
+            }
+
+            // Logic: Transparent only if Format supports alpha channel
+            // Supported formats with alpha: png, webp, gif, tiff (assuming tiff support)
+            // jpg, bmp usually don't support transparency in this context
+            const alphaFormats = ['png', 'webp', 'gif', 'tiff', '']; // empty string means original, assuming original might have alpha
+
+            // Strict check: if user selected jpg or bmp, disable transparent checkbox
+            const noAlpha = ['jpg', 'jpeg', 'bmp'];
+
+            if (noAlpha.includes(format)) {
+                params.bgTransparent.disabled = true;
+                params.bgTransparent.checked = false;
+                params.bgTransparent.parentElement.classList.add('text-gray-400');
+                params.bgTransparent.parentElement.classList.remove('text-gray-700');
+            } else if (fit === 'contain') {
+                 // Only re-enable if fit is contain
+                params.bgTransparent.disabled = false;
+                params.bgTransparent.parentElement.classList.remove('text-gray-400');
+                params.bgTransparent.parentElement.classList.add('text-gray-700');
+            }
+
+            // If transparent is checked, disable the hex input
+            if (params.bgTransparent.checked) {
+                params.bg.disabled = true;
+                params.bg.classList.add('bg-gray-100');
+            } else if (fit === 'contain') {
+                params.bg.disabled = false;
+                params.bg.classList.remove('bg-gray-100');
+            }
+        }
+
+        // Attach UI logic listeners
+        params.f.addEventListener('change', updateUiConstraints);
+        params.fm.addEventListener('change', updateUiConstraints);
+        params.bgTransparent.addEventListener('change', updateUiConstraints);
+
+        // 3. Action Buttons
+        generateBtn.addEventListener('click', updatePreview);
+
+        deleteBtn.addEventListener('click', async () => {
+            if(!currentImageId) return;
+            if(!confirm('本当にこの画像を削除しますか？\n削除するとリンクは無効になります。')) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/img/${currentImageId}`, { method: 'DELETE' });
+                if(res.ok) {
+                    alert('削除しました。');
+                    location.reload();
+                } else {
+                    alert('削除に失敗しました。');
+                }
+            } catch(e) {
+                alert('エラーが発生しました: ' + e.message);
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            resultUrlInput.select();
+            document.execCommand('copy');
+            const originalIcon = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-check text-green-400"></i>';
+            setTimeout(() => copyBtn.innerHTML = originalIcon, 2000);
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            const url = resultUrlInput.value;
+            if(!url || url === '...') return;
+
+            const btnHtml = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 準備中...';
+
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                // Try to guess extension
+                let ext = 'img';
+                const mime = blob.type;
+                if(mime) ext = mime.split('/')[1];
+
+                a.download = `converted_image_${currentImageId}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(blobUrl);
+                document.body.removeChild(a);
+            } catch (e) {
+                alert('ダウンロードに失敗しました。CORS制限などの可能性があります。\n新しいタブで開いて保存してください。');
+            } finally {
+                downloadBtn.innerHTML = btnHtml;
+            }
+        });
+
+        // --- Functions ---
+
+        async function handleFileUpload() {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            // UI Update
+            dropZone.classList.add('hidden');
+            uploadStatus.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.message || 'Upload failed');
+                }
+
+                const data = await response.json();
+                currentImageId = data.id;
+
+                // Success UI Setup
+                currentImageIdEl.textContent = currentImageId;
+                uploadStatus.innerHTML = `<span class="text-green-700"><i class="fa-solid fa-check-circle"></i> アップロード成功 (1時間後に自動削除されます)</span>`;
+
+                editorSection.classList.remove('hidden');
+
+                // Initialize Logic
+                updateUiConstraints();
+                updatePreview(); // Initial render with defaults
+
+            } catch (error) {
+                console.error(error);
+                uploadStatus.innerHTML = `<span class="text-red-600"><i class="fa-solid fa-triangle-exclamation"></i> エラー: ${error.message}</span>`;
+                dropZone.classList.remove('hidden');
+                setTimeout(() => uploadStatus.classList.add('hidden'), 3000);
+            }
+        }
+
+        function buildUrl() {
+            if (!currentImageId) return '';
+
+            const url = new URL(`${API_BASE}/img/${currentImageId}`);
+
+            // Helper to add param if exists
+            const addParam = (key, val) => {
+                if (val !== '' && val !== null && val !== undefined) {
+                    url.searchParams.set(key, val);
+                }
+            };
+
+            addParam('w', params.w.value);
+            addParam('h', params.h.value);
+            addParam('f', params.f.value); // Always has value
+
+            if (params.fm.value) addParam('fm', params.fm.value);
+            if (params.q.value) addParam('q', params.q.value);
+
+            // Conditional Params based on constraints
+            if (!params.g.disabled && params.g.value) {
+                addParam('g', params.g.value);
+            }
+
+            if (!params.bg.disabled && params.bg.value) {
+                addParam('bg', params.bg.value);
+            } else if (!params.bgTransparent.disabled && params.bgTransparent.checked) {
+                addParam('bg', 'transparent');
+            }
+
+            return url.toString();
+        }
+
+        function updatePreview() {
+            if (!currentImageId) return;
+
+            const finalUrl = buildUrl();
+            resultUrlInput.value = finalUrl;
+            openNewTabBtn.href = finalUrl;
+
+            // Show loading on image
+            previewLoading.classList.remove('hidden');
+
+            // Preload image to smooth transition
+            const tempImg = new Image();
+            tempImg.onload = () => {
+                previewImg.src = finalUrl;
+                previewLoading.classList.add('hidden');
+            };
+            tempImg.onerror = () => {
+                previewLoading.classList.add('hidden');
+                alert('画像の読み込みに失敗しました。パラメータを確認してください。');
+            };
+            tempImg.src = finalUrl;
+        }
+    </script>
+</body>
+</html>

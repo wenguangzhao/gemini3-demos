@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ぷるぷるブロック</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;800&family=Fredoka+One&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            /* 深邃护眼背景 */
+            background: radial-gradient(circle at center top, #2b1055 0%, #1a0b2e 100%);
+            touch-action: none; /* 禁止默认触摸行为 */
+        }
+
+        /* 字体样式 */
+        h1, .score-text, .jp-font {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* 玻璃拟态面板 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            transition: all 0.1s ease;
+        }
+
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .glass-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+
+        /* 画布层级 */
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            cursor: grab;
+        }
+        #game-canvas:active {
+            cursor: grabbing;
+        }
+
+        /* UI 层级 */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            /* 改为 Row 布局，左边是空的/分数，右边是控制条 */
+            flex-direction: row;
+        }
+
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+
+        /* 左侧分数区域容器 */
+        .info-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 20px;
+        }
+
+        /* 右侧控制区域布局优化 */
+        .controls-area {
+            width: 140px; /* 固定宽度 */
+            height: 100%;
+            background: linear-gradient(to left, rgba(0,0,0,0.5) 0%, transparent 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-right: 20px; /* 给手指留点边距 */
+            pointer-events: auto;
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 600px) {
+            .controls-area {
+                width: 130px; /* 稍微加宽以容纳并排按钮 */
+                padding-right: 10px;
+            }
+        }
+
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+    <canvas id="game-canvas"></canvas>
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+
+        <!-- Left Side: Score, Level, System Btns -->
+        <div class="info-area pointer-events-none">
+            <div class="flex flex-col gap-4 max-w-[120px] pointer-events-auto">
+                <!-- Score -->
+                <div class="glass-panel px-4 py-3 text-white text-center">
+                    <div class="text-xs opacity-70 font-bold">スコア</div>
+                    <div class="text-2xl score-text text-yellow-300" id="score">0</div>
+                </div>
+
+                <!-- Level -->
+                <div class="glass-panel px-4 py-3 text-white text-center">
+                    <div class="text-xs opacity-70 font-bold">レベル</div>
+                    <div class="text-2xl score-text text-pink-300" id="level">1</div>
+                </div>
+
+                <!-- System Buttons (Horizontal) -->
+                <div class="flex gap-2 justify-center mt-2">
+                    <button id="pause-btn" class="glass-panel w-10 h-10 flex items-center justify-center text-white text-lg hover:bg-white/20" onclick="togglePause()">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                    <button class="glass-panel w-10 h-10 flex items-center justify-center text-white text-lg hover:bg-white/20" onclick="restartGame()">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay -->
+        <div id="overlay" class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md z-50 pointer-events-auto transition-opacity duration-300">
+            <div class="glass-panel p-8 text-center max-w-xs transform hover:scale-105 border-white/60 bg-white/10 shadow-2xl">
+                <div class="text-6xl mb-4 animate-bounce">🍮</div>
+                <h1 class="text-4xl text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-purple-300 mb-2 tracking-wider font-black" id="overlay-title">ぷるぷる<br>ブロック</h1>
+                <p class="text-white/80 mb-8 text-sm">✨ ドラッグで回転・ズーム ✨</p>
+                <button onclick="startGame()" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-pink-500/50 transition-all text-xl jp-font border border-white/30">
+                    スタート
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Side Controls -->
+        <div class="controls-area">
+            <div class="flex flex-col items-center gap-4 w-full">
+
+                <!-- Rotate (Top) -->
+                <button class="glass-panel glass-btn w-18 h-18 p-5 rounded-full flex items-center justify-center text-white text-3xl bg-pink-500/30 border-pink-300/50 shadow-lg mb-2" id="btn-rotate">
+                    <i class="fas fa-undo"></i>
+                </button>
+
+                <!-- Left / Right Cluster -->
+                <div class="flex gap-3 w-full justify-center">
+                    <button class="glass-panel glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg" id="btn-left">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="glass-panel glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg" id="btn-right">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Down / Hard Drop Cluster -->
+                <div class="flex gap-3 w-full justify-center mt-1">
+                    <!-- Soft Drop -->
+                    <button class="glass-panel glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl bg-purple-500/30 border-purple-300/50 shadow-lg" id="btn-down">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <!-- Hard Drop (New!) -->
+                    <button class="glass-panel glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl bg-red-400/40 border-red-300/60 shadow-lg" id="btn-hard-drop">
+                        <i class="fas fa-angles-down"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <div class="text-center text-white/40 text-[10px] mt-6 font-light tracking-widest writing-vertical-rl hidden md:block">
+                PC: 矢印キー
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const BOARD_WIDTH = 10;
+        const BOARD_HEIGHT = 20;
+
+        const COLORS = {
+            I: 0x00FFFF, // Cyan
+            J: 0x4da6ff, // Blue
+            L: 0xffaa00, // Orange
+            O: 0xffff00, // Yellow
+            S: 0x00ff00, // Green
+            T: 0xaa00ff, // Purple
+            Z: 0xff0055, // Red
+            Ghost: 0xFFFFFF
+        };
+
+        const PARTICLE_COLORS = [0xFF9AA2, 0xFFB7B2, 0xFFDAC1, 0xE2F0CB, 0xB5EAD7, 0xC7CEEA];
+
+        let scene, camera, renderer, controls;
+        let grid = [];
+        let meshGrid = [];
+        let activePiece = null;
+        let animationId;
+        let lastTime = 0;
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let isPaused = true;
+        let isGameOver = false;
+        let score = 0;
+        let level = 1;
+        let boardGroup;
+
+        function initThree() {
+            const canvas = document.getElementById('game-canvas');
+
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.1;
+
+            // OrbitControls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enablePan = false;
+            controls.minDistance = 15;
+            controls.maxDistance = 60;
+            controls.maxPolarAngle = Math.PI / 1.5;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            dirLight.position.set(5, 25, 15);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            const pointLight = new THREE.PointLight(0xa855f7, 1.5, 50);
+            pointLight.position.set(-5, 10, 10);
+            scene.add(pointLight);
+
+            const bottomLight = new THREE.PointLight(0x2dd4bf, 0.8, 40);
+            bottomLight.position.set(15, 0, 10);
+            scene.add(bottomLight);
+
+            createBoardContainer();
+            createStars();
+
+            window.addEventListener('resize', onWindowResize);
+            onWindowResize();
+        }
+
+        function createBoardContainer() {
+            boardGroup = new THREE.Group();
+            scene.add(boardGroup);
+
+            // Background Plane
+            const planeGeom = new THREE.PlaneGeometry(BOARD_WIDTH + 1, BOARD_HEIGHT + 1);
+            const planeMat = new THREE.MeshPhysicalMaterial({
+                color: 0x1a1a2e,
+                transparent: true,
+                opacity: 0.5,
+                roughness: 0.1,
+                metalness: 0.1,
+                side: THREE.DoubleSide
+            });
+            const plane = new THREE.Mesh(planeGeom, planeMat);
+            plane.position.set(4.5, 9.5, -0.55);
+            plane.receiveShadow = true;
+            boardGroup.add(plane);
+
+            // Border
+            const frameMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
+            const shape = new THREE.Shape();
+            const padding = 0.1;
+            shape.moveTo(-0.5-padding, -0.5-padding);
+            shape.lineTo(BOARD_WIDTH - 0.5 + padding, -0.5-padding);
+            shape.lineTo(BOARD_WIDTH - 0.5 + padding, BOARD_HEIGHT - 0.5 + padding);
+            shape.lineTo(-0.5-padding, BOARD_HEIGHT - 0.5 + padding);
+            shape.lineTo(-0.5-padding, -0.5-padding);
+
+            const points = shape.getPoints();
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const border = new THREE.Line(geometry, frameMat);
+            border.position.set(0, 0, 0);
+            boardGroup.add(border);
+
+            // Base
+            const baseGeo = new THREE.BoxGeometry(BOARD_WIDTH + 4, 1, 4);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x2d1b4e, roughness: 0.2 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.set(4.5, -1.5, 0);
+            base.receiveShadow = true;
+            boardGroup.add(base);
+        }
+
+        function createStars() {
+            const starGroup = new THREE.Group();
+            const geom = new THREE.OctahedronGeometry(0.15, 0);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xfffba0 });
+
+            for(let i=0; i<80; i++) {
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.set(
+                    (Math.random() - 0.5) * 60,
+                    (Math.random() - 0.5) * 80,
+                    -10 - Math.random() * 30
+                );
+                mesh.userData = {
+                    speed: Math.random() * 0.02 + 0.005,
+                    offset: Math.random() * 100
+                };
+                starGroup.add(mesh);
+            }
+            scene.add(starGroup);
+            scene.userData.stars = starGroup;
+        }
+
+        function animateBackground() {
+            if (scene.userData.stars) {
+                scene.userData.stars.children.forEach(star => {
+                    star.position.y += Math.sin(Date.now() * 0.001 + star.userData.offset) * 0.015;
+                    star.rotation.y += 0.02;
+                });
+                scene.userData.stars.rotation.z += 0.0003;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            let targetX = 4.5;
+            let targetY = 9;
+            let camZ = 32;
+
+            if (window.innerWidth < 600) {
+                // 移动端适配
+                targetX = 7.5;
+                targetY = 8;
+                camZ = 42;
+            } else {
+                // 桌面端适配
+                targetX = 6.5;
+                camZ = 32;
+            }
+
+            controls.target.set(targetX, targetY, 0);
+            camera.position.set(targetX, targetY + 3, camZ);
+
+            controls.update();
+        }
+
+        // --- Game Logic ---
+        function createGrid() {
+            if (meshGrid.length > 0) {
+                meshGrid.forEach(row => row.forEach(mesh => {
+                    if(mesh) scene.remove(mesh);
+                }));
+            }
+            grid = Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(0));
+            meshGrid = Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
+        }
+
+        function createBlockMaterial(colorHex) {
+            return new THREE.MeshPhysicalMaterial({
+                color: colorHex,
+                metalness: 0.1,
+                roughness: 0.1,
+                transmission: 0.6,
+                thickness: 1.5,
+                ior: 1.5,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.05,
+                attenuationColor: colorHex,
+                attenuationDistance: 1.0
+            });
+        }
+
+        function createBlockMesh(color, x, y, animate = false) {
+            const geometry = new RoundedBoxGeometry(0.92, 0.92, 0.92, 4, 0.15);
+            const material = createBlockMaterial(color);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, 0);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+
+            if (animate) {
+                gsap.from(mesh.scale, { x: 0.1, y: 0.1, z: 0.1, duration: 0.4, ease: "back.out(2)" });
+            }
+            return mesh;
+        }
+
+        const PIECES = [
+            { shape: [[1, 1, 1, 1]], color: COLORS.I },
+            { shape: [[1, 0, 0], [1, 1, 1]], color: COLORS.J },
+            { shape: [[0, 0, 1], [1, 1, 1]], color: COLORS.L },
+            { shape: [[1, 1], [1, 1]], color: COLORS.O },
+            { shape: [[0, 1, 1], [1, 1, 0]], color: COLORS.S },
+            { shape: [[0, 1, 0], [1, 1, 1]], color: COLORS.T },
+            { shape: [[1, 1, 0], [0, 1, 1]], color: COLORS.Z }
+        ];
+
+        function spawnPiece() {
+            const typeId = Math.floor(Math.random() * PIECES.length);
+            const pieceDef = PIECES[typeId];
+
+            activePiece = {
+                matrix: pieceDef.shape,
+                x: Math.floor(BOARD_WIDTH / 2) - Math.floor(pieceDef.shape[0].length / 2),
+                y: BOARD_HEIGHT - 1,
+                color: pieceDef.color,
+                meshes: []
+            };
+
+            if (collide(activePiece.x, activePiece.y, activePiece.matrix)) {
+                isGameOver = true;
+                showOverlay("ゲームオーバー", "残念！また挑戦してね");
+                return;
+            }
+            renderActivePiece(true);
+        }
+
+        function renderActivePiece(animate = false) {
+            activePiece.meshes.forEach(m => scene.remove(m));
+            activePiece.meshes = [];
+
+            activePiece.matrix.forEach((row, dy) => {
+                row.forEach((value, dx) => {
+                    if (value) {
+                        const mesh = createBlockMesh(
+                            activePiece.color,
+                            activePiece.x + dx,
+                            activePiece.y - dy,
+                            animate
+                        );
+                        activePiece.meshes.push(mesh);
+                    }
+                });
+            });
+        }
+
+        function collide(offsetX, offsetY, matrix) {
+            for (let y = 0; y < matrix.length; y++) {
+                for (let x = 0; x < matrix[y].length; x++) {
+                    if (matrix[y][x] !== 0) {
+                        const newX = offsetX + x;
+                        const newY = offsetY - y;
+                        if (newX < 0 || newX >= BOARD_WIDTH || newY < 0) return true;
+                        if (newY < BOARD_HEIGHT && grid[newY][newX] !== 0) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function rotateMatrix(matrix) {
+            const N = matrix.length;
+            const M = matrix[0].length;
+            const result = Array.from({ length: M }, () => Array(N).fill(0));
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < M; x++) {
+                    result[x][N - 1 - y] = matrix[y][x];
+                }
+            }
+            return result;
+        }
+
+        function merge() {
+            activePiece.matrix.forEach((row, dy) => {
+                row.forEach((value, dx) => {
+                    if (value) {
+                        const x = activePiece.x + dx;
+                        const y = activePiece.y - dy;
+                        if (y >= 0 && y < BOARD_HEIGHT) {
+                            grid[y][x] = activePiece.color;
+                            meshGrid[y][x] = createBlockMesh(activePiece.color, x, y, false);
+
+                            gsap.to(meshGrid[y][x].scale, {
+                                keyframes: [
+                                    { y: 0.7, x: 1.15, z: 1.15, duration: 0.1 },
+                                    { y: 1, x: 1, z: 1, duration: 0.3, ease: "elastic.out(1, 0.3)" }
+                                ]
+                            });
+                        }
+                    }
+                });
+            });
+
+            activePiece.meshes.forEach(m => scene.remove(m));
+            activePiece.meshes = [];
+
+            checkLines();
+            spawnPiece();
+        }
+
+        function createExplosion(yLine) {
+            const geometry = new THREE.TetrahedronGeometry(0.3);
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                for (let i = 0; i < 5; i++) {
+                    const color = PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)];
+                    const material = new THREE.MeshBasicMaterial({ color: color });
+                    const particle = new THREE.Mesh(geometry, material);
+
+                    particle.position.set(x, yLine, 0);
+                    particle.position.x += (Math.random() - 0.5);
+                    particle.position.y += (Math.random() - 0.5);
+                    scene.add(particle);
+
+                    gsap.to(particle.position, {
+                        x: particle.position.x + (Math.random() - 0.5) * 10,
+                        y: particle.position.y + (Math.random() - 0.5) * 10,
+                        z: (Math.random() - 0.5) * 10 + 5,
+                        duration: 1.5,
+                        ease: "power3.out"
+                    });
+                    gsap.to(particle.rotation, {
+                        x: Math.random() * 20,
+                        y: Math.random() * 20,
+                        duration: 1.5
+                    });
+                    gsap.to(particle.scale, {
+                        x: 0, y: 0, z: 0,
+                        duration: 1.5,
+                        onComplete: () => scene.remove(particle)
+                    });
+                }
+            }
+        }
+
+        function checkLines() {
+            let linesCleared = 0;
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                if (grid[y].every(val => val !== 0)) {
+                    linesCleared++;
+                    grid.splice(y, 1);
+                    grid.push(Array(BOARD_WIDTH).fill(0));
+
+                    meshGrid[y].forEach(mesh => {
+                        if(mesh) {
+                            gsap.to(mesh.scale, {x:0, y:0, z:0, duration: 0.3, onComplete:()=>scene.remove(mesh)});
+                        }
+                    });
+                    createExplosion(y);
+                    meshGrid.splice(y, 1);
+                    meshGrid.push(Array(BOARD_WIDTH).fill(null));
+                    y--;
+                }
+            }
+
+            if (linesCleared > 0) {
+                updateMeshesFromGrid();
+                score += linesCleared * 100 * (linesCleared * 0.5 + 1);
+                document.getElementById('score').innerText = Math.floor(score);
+
+                if (score > level * 800) {
+                    level++;
+                    document.getElementById('level').innerText = level;
+                    dropInterval = Math.max(150, 1000 - (level * 80));
+                }
+            }
+        }
+
+        function updateMeshesFromGrid() {
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    const mesh = meshGrid[y][x];
+                    if (mesh) {
+                        gsap.to(mesh.position, {
+                            x: x,
+                            y: y,
+                            duration: 0.4,
+                            ease: "bounce.out"
+                        });
+                    }
+                }
+            }
+        }
+
+        function move(dir) {
+            if (isPaused || isGameOver) return;
+            if (!collide(activePiece.x + dir, activePiece.y, activePiece.matrix)) {
+                activePiece.x += dir;
+                renderActivePiece();
+            }
+        }
+
+        function rotate() {
+            if (isPaused || isGameOver) return;
+            const rotated = rotateMatrix(activePiece.matrix);
+            if (!collide(activePiece.x, activePiece.y, rotated)) {
+                activePiece.matrix = rotated;
+                renderActivePiece();
+            } else {
+                if (!collide(activePiece.x - 1, activePiece.y, rotated)) {
+                     activePiece.x -= 1;
+                     activePiece.matrix = rotated;
+                     renderActivePiece();
+                } else if (!collide(activePiece.x + 1, activePiece.y, rotated)) {
+                     activePiece.x += 1;
+                     activePiece.matrix = rotated;
+                     renderActivePiece();
+                }
+            }
+        }
+
+        function drop() {
+            if (isPaused || isGameOver) return;
+            if (!collide(activePiece.x, activePiece.y - 1, activePiece.matrix)) {
+                activePiece.y--;
+                renderActivePiece();
+                dropCounter = 0;
+            } else {
+                merge();
+            }
+        }
+
+        // --- 新增：直接到底功能 ---
+        function hardDrop() {
+            if (isPaused || isGameOver) return;
+
+            // 不断下落直到碰撞
+            while (!collide(activePiece.x, activePiece.y - 1, activePiece.matrix)) {
+                activePiece.y--;
+                score += 2; // 硬降加分
+            }
+
+            renderActivePiece();
+            merge(); // 立即锁定
+            dropCounter = 0;
+        }
+
+        document.addEventListener('keydown', event => {
+            if (isGameOver) return;
+            if (event.keyCode === 37) move(-1);
+            else if (event.keyCode === 39) move(1);
+            else if (event.keyCode === 40) drop();
+            else if (event.keyCode === 38) rotate();
+            else if (event.keyCode === 32) togglePause();
+        });
+
+        function bindTouch(id, action) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); action(); }, {passive: false});
+            btn.addEventListener('mousedown', (e) => { e.stopPropagation(); });
+            btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); action(); });
+        }
+
+        bindTouch('btn-left', () => move(-1));
+        bindTouch('btn-right', () => move(1));
+        bindTouch('btn-down', drop);
+        bindTouch('btn-hard-drop', hardDrop); // 绑定新按钮
+        bindTouch('btn-rotate', rotate);
+
+        function gameLoop(time = 0) {
+            animationId = requestAnimationFrame(gameLoop);
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            if (!isPaused && !isGameOver) {
+                dropCounter += deltaTime;
+                if (dropCounter > dropInterval) {
+                    drop();
+                    dropCounter = 0;
+                }
+            }
+
+            if(controls) controls.update();
+
+            animateBackground();
+            renderer.render(scene, camera);
+        }
+
+        window.startGame = function() {
+            const overlay = document.getElementById('overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 300);
+            if (isGameOver) restartGame();
+            else isPaused = false;
+        };
+
+        window.togglePause = function() {
+            if (isGameOver) return;
+            isPaused = !isPaused;
+            const btn = document.getElementById('pause-btn');
+            const overlay = document.getElementById('overlay');
+
+            if (isPaused) {
+                btn.innerHTML = '<i class="fas fa-play"></i>';
+                overlay.style.display = 'flex';
+                setTimeout(() => overlay.style.opacity = '1', 10);
+                document.getElementById('overlay-title').innerText = "一時停止";
+            } else {
+                btn.innerHTML = '<i class="fas fa-pause"></i>';
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 300);
+            }
+        };
+
+        window.restartGame = function() {
+            isPaused = false;
+            isGameOver = false;
+            score = 0;
+            level = 1;
+            dropInterval = 1000;
+            document.getElementById('score').innerText = '0';
+            document.getElementById('level').innerText = '1';
+            document.getElementById('pause-btn').innerHTML = '<i class="fas fa-pause"></i>';
+
+            const overlay = document.getElementById('overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 300);
+
+            createGrid();
+            spawnPiece();
+        };
+
+        window.showOverlay = function(title, subtitle) {
+            const overlay = document.getElementById('overlay');
+            document.getElementById('overlay-title').innerText = title;
+            overlay.querySelector('p').innerText = subtitle;
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.style.opacity = '1', 10);
+        }
+
+        initThree();
+        createGrid();
+        spawnPiece();
+        gameLoop();
+    </script>
+</body>
+</html>
