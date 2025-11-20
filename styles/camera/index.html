@@ -50,7 +50,7 @@
           forwards;
       }
 
-      /* Developing Effect (显影效果) - Modified to 2s */
+      /* Developing Effect (显影效果) - 2s */
       @keyframes develop-image {
         0% {
           filter: blur(8px) grayscale(1) brightness(1.8) contrast(0.8);
@@ -66,7 +66,7 @@
       }
       /* 只有带有 developing 类的元素才会执行显影动画 */
       .developing img {
-        animation: develop-image 2s ease-in-out forwards; /* Modified duration to 2s */
+        animation: develop-image 2s ease-in-out forwards;
       }
 
       /* Dragging & Selection Styles */
@@ -138,8 +138,9 @@
         id="camera-container"
       >
         <!-- The Ejecting Photo Slot (Behind Camera) -->
+        <!-- Adjusted height for taller photos -->
         <div
-          class="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[200px] z-0"
+          class="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[240px] z-0"
           id="printer-slot"
         >
           <!-- Photos will be appended here -->
@@ -198,7 +199,7 @@
     <canvas id="render-canvas" class="hidden"></canvas>
 
     <script>
-      // --- CONFIGURATION & CALIBRATION ---
+      // --- CONFIGURATION & CALIBRATION (已更新) ---
       const CAMERA_CONFIG = {
         // 镜头位置
         lensTop: 50.5, // 增大数字 -> 向下移
@@ -322,11 +323,14 @@
         void flashOverlay.offsetWidth;
         flashOverlay.classList.add("flash-active");
 
-        // Capture logic
+        // Capture logic for TALL (Portrait) aspect ratio
         const canvas = document.createElement("canvas");
-        const size = 600;
-        canvas.width = size;
-        canvas.height = size;
+        // Use 3:4 Aspect Ratio (e.g. 600x800)
+        const targetWidth = 600;
+        const targetHeight = 800;
+
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
         const ctx = canvas.getContext("2d");
 
         const isCameraActive =
@@ -336,21 +340,45 @@
 
         if (isCameraActive) {
           try {
-            const vidSize = Math.min(video.videoWidth, video.videoHeight);
-            if (vidSize > 0) {
-              const sx = (video.videoWidth - vidSize) / 2;
-              const sy = (video.videoHeight - vidSize) / 2;
-              ctx.translate(size, 0);
-              ctx.scale(-1, 1);
-              ctx.drawImage(video, sx, sy, vidSize, vidSize, 0, 0, size, size);
+            // Calculate cropping to maintain aspect ratio
+            const videoRatio = video.videoWidth / video.videoHeight;
+            const targetRatio = targetWidth / targetHeight;
+
+            let renderWidth, renderHeight, startX, startY;
+
+            if (videoRatio > targetRatio) {
+              // Video is wider than target: Crop width
+              renderHeight = video.videoHeight;
+              renderWidth = video.videoHeight * targetRatio;
+              startX = (video.videoWidth - renderWidth) / 2;
+              startY = 0;
             } else {
-              throw new Error("Video dimensions invalid");
+              // Video is taller (or equal) than target: Crop height
+              renderWidth = video.videoWidth;
+              renderHeight = video.videoWidth / targetRatio;
+              startX = 0;
+              startY = (video.videoHeight - renderHeight) / 2;
             }
+
+            ctx.translate(targetWidth, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(
+              video,
+              startX,
+              startY,
+              renderWidth,
+              renderHeight,
+              0,
+              0,
+              targetWidth,
+              targetHeight
+            );
           } catch (e) {
-            drawFallbackImage(ctx, size);
+            console.error("Capture error", e);
+            drawFallbackImage(ctx, targetWidth, targetHeight);
           }
         } else {
-          drawFallbackImage(ctx, size);
+          drawFallbackImage(ctx, targetWidth, targetHeight);
         }
 
         const imgDataUrl = canvas.toDataURL("image/png");
@@ -366,51 +394,53 @@
         createPolaroid(imgDataUrl, timestamp);
       }
 
-      function drawFallbackImage(ctx, size) {
+      function drawFallbackImage(ctx, w, h) {
         ctx.fillStyle = "#111111";
-        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(0, 0, w, h);
         for (let i = 0; i < 80000; i++) {
-          const x = Math.random() * size;
-          const y = Math.random() * size;
+          const x = Math.random() * w;
+          const y = Math.random() * h;
           const brightness = Math.random() * 20 + 10;
           ctx.fillStyle = `rgba(${brightness}, ${brightness}, ${brightness}, 0.1)`;
           ctx.fillRect(x, y, 2, 2);
         }
+        const maxDim = Math.max(w, h);
         const gradient = ctx.createRadialGradient(
-          size / 2,
-          size / 2,
-          size * 0.4,
-          size / 2,
-          size / 2,
-          size
+          w / 2,
+          h / 2,
+          maxDim * 0.3,
+          w / 2,
+          h / 2,
+          maxDim * 0.8
         );
         gradient.addColorStop(0, "transparent");
-        gradient.addColorStop(1, "rgba(0,0,0,0.6)");
+        gradient.addColorStop(1, "rgba(0,0,0,0.8)");
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(0, 0, w, h);
       }
 
       function createPolaroid(imgUrl, dateText) {
         const id = Date.now();
 
         const polaroid = document.createElement("div");
-        // Added 'developing' class which triggers the CSS animation
+        // Taller Polaroid Card: 160px Width, 240px Height
         polaroid.className =
           "absolute bg-[#fdfdfd] shadow-lg p-3 flex flex-col items-center justify-start in-printer developing";
         polaroid.style.width = "160px";
-        polaroid.style.height = "200px";
+        polaroid.style.height = "240px"; // Increased height
         polaroid.style.paddingBottom = "30px";
         polaroid.id = `photo-${id}`;
 
         const img = document.createElement("img");
         img.src = imgUrl;
+        // Changed aspect-square to aspect-[3/4] for portrait look
         img.className =
-          "w-full aspect-square object-cover bg-gray-900 pointer-events-none select-none";
+          "w-full aspect-[3/4] object-cover bg-gray-900 pointer-events-none select-none";
         img.draggable = false;
 
         const label = document.createElement("div");
         label.className =
-          "handwritten text-gray-600 text-xs mt-2 text-center w-full leading-tight pointer-events-none select-none";
+          "handwritten text-gray-600 text-xs mt-3 text-center w-full leading-tight pointer-events-none select-none";
         label.innerText = dateText;
 
         polaroid.appendChild(img);
@@ -448,7 +478,6 @@
         zIndexCounter++;
         dragItem.style.zIndex = zIndexCounter;
 
-        // Auto select when dragging starts
         selectPhoto(dragItem);
 
         const rect = dragItem.getBoundingClientRect();
@@ -467,7 +496,7 @@
           dragItem.style.transform = "none";
           dragItem.classList.remove("ejecting", "in-printer");
 
-          // CRITICAL FIX: Remove 'developing' class when moving to body to prevent animation restart
+          // Remove 'developing' class when moving to body
           dragItem.classList.remove("developing");
 
           document.body.appendChild(dragItem);
@@ -500,7 +529,6 @@
 
         dragItem.classList.remove("is-dragging");
 
-        // Rotation effect on drop
         const galleryRect = galleryZone.getBoundingClientRect();
         const itemRect = dragItem.getBoundingClientRect();
         const itemCenter = {
@@ -508,10 +536,7 @@
           y: itemRect.top + itemRect.height / 2,
         };
 
-        // Check bounds (simple check)
         if (itemCenter.x > galleryRect.left) {
-          // Apply a random resting angle
-          // Don't snap rotation if it already has one, unless it was 0 from dragging
           const randomRot = Math.random() * 8 - 4;
           dragItem.style.transform = `rotate(${randomRot}deg)`;
         }
@@ -559,24 +584,27 @@
         const text = element.innerText;
 
         const cardWidth = 600;
-        const cardHeight = 720;
+        // Increased download height for portrait
+        const cardHeight = 860;
         const padding = 40;
 
         canvas.width = cardWidth;
         canvas.height = cardHeight;
 
-        // Background (matching the slight off-white)
+        // Background
         ctx.fillStyle = "#fdfdfd";
         ctx.fillRect(0, 0, cardWidth, cardHeight);
 
-        // Image
-        const imgSize = cardWidth - 40 - padding * 2;
-        ctx.drawImage(img, 20 + padding, 20 + padding, imgSize, imgSize);
+        // Image (Portrait calc)
+        const imgWidth = cardWidth - 40 - padding * 2;
+        const imgHeight = imgWidth * (4 / 3); // 3:4 Ratio
+        ctx.drawImage(img, 20 + padding, 20 + padding, imgWidth, imgHeight);
 
         // Text
         ctx.fillStyle = "#333333";
         ctx.font = '40px "Permanent Marker", cursive';
         ctx.textAlign = "center";
+        // Adjust text position based on new height
         ctx.fillText(text, cardWidth / 2, cardHeight - 60);
 
         const link = document.createElement("a");
