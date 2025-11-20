@@ -1,399 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Camera App</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
     <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        overflow: hidden; /* Prevent scrolling when dragging */
-        touch-action: none;
-        user-select: none;
-        -webkit-user-select: none;
-      }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* Prevent scrolling when dragging */
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
 
-      .handwritten {
-        font-family: "Permanent Marker", cursive;
-      }
+        .handwritten { font-family: 'Permanent Marker', cursive; }
 
-      /* Animations */
-      @keyframes flash-animation {
-        0% {
-          opacity: 1;
-        }
-        100% {
-          opacity: 0;
-        }
-      }
-      .flash-active {
-        animation: flash-animation 0.8s ease-out forwards;
-      }
+        /* Animations */
+        @keyframes flash-animation { 0% { opacity: 1; } 100% { opacity: 0; } }
+        .flash-active { animation: flash-animation 0.8s ease-out forwards; }
 
-      @keyframes eject-photo-partial {
-        0% {
-          transform: translateY(100%);
-        }
-        100% {
-          transform: translateY(-60%);
-        }
-      }
-      .ejecting {
-        animation: eject-photo-partial 0.8s cubic-bezier(0.25, 1, 0.5, 1)
-          forwards;
-      }
+        @keyframes eject-photo-partial { 0% { transform: translateY(100%); } 100% { transform: translateY(-60%); } }
+        .ejecting { animation: eject-photo-partial 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
 
-      @keyframes develop-image {
-        0% {
-          filter: blur(8px) grayscale(1) brightness(1.8) contrast(0.8);
-          opacity: 0.9;
+        @keyframes develop-image {
+            0% { filter: blur(8px) grayscale(1) brightness(1.8) contrast(0.8); opacity: 0.9; }
+            50% { filter: blur(4px) grayscale(0.6) brightness(1.2); }
+            100% { filter: blur(0) grayscale(0) brightness(1) contrast(1); opacity: 1; }
         }
-        50% {
-          filter: blur(4px) grayscale(0.6) brightness(1.2);
-        }
-        100% {
-          filter: blur(0) grayscale(0) brightness(1) contrast(1);
-          opacity: 1;
-        }
-      }
-      .developing img {
-        animation: develop-image 2s ease-in-out forwards;
-      }
+        .developing img { animation: develop-image 2s ease-in-out forwards; }
 
-      @keyframes fade-in {
-        from {
-          opacity: 0;
-          transform: scale(0.95);
+        @keyframes fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-enter { animation: fade-in 0.2s ease-out forwards; }
+
+        /* Interactive Elements */
+        .draggable {
+            cursor: grab; position: absolute;
+            transition: box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.3s ease;
+            touch-action: none; will-change: transform, box-shadow;
         }
-        to {
-          opacity: 1;
-          transform: scale(1);
+        .draggable.is-dragging {
+            cursor: grabbing; z-index: 1000 !important;
+            transform: scale(1.05) rotate(0deg) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3); transition: none;
         }
-      }
-      .modal-enter {
-        animation: fade-in 0.2s ease-out forwards;
-      }
+        .selected-photo {
+            z-index: 50; transform: scale(1.02);
+            box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.4);
+        }
+        .in-printer { z-index: 0; cursor: grab; }
+        .in-printer:hover { transform: translateY(-65%) !important; }
 
-      /* Interactive Elements */
-      .draggable {
-        cursor: grab;
-        position: absolute;
-        transition: box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
-          transform 0.3s ease;
-        touch-action: none;
-        will-change: transform, box-shadow;
-      }
-      .draggable.is-dragging {
-        cursor: grabbing;
-        z-index: 1000 !important;
-        transform: scale(1.05) rotate(0deg) !important;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
-        transition: none;
-      }
-      .selected-photo {
-        z-index: 50;
-        transform: scale(1.02);
-        box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.4);
-      }
-      .in-printer {
-        z-index: 0;
-        cursor: grab;
-      }
-      .in-printer:hover {
-        transform: translateY(-65%) !important;
-      }
+        /* Slider */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: #ec4899; cursor: pointer; margin-top: -6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer;
+            background: #e5e7eb; border-radius: 2px;
+        }
 
-      /* Slider */
-      input[type="range"] {
-        -webkit-appearance: none;
-        background: transparent;
-      }
-      input[type="range"]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        height: 16px;
-        width: 16px;
-        border-radius: 50%;
-        background: #ec4899;
-        cursor: pointer;
-        margin-top: -6px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-      }
-      input[type="range"]::-webkit-slider-runnable-track {
-        width: 100%;
-        height: 4px;
-        cursor: pointer;
-        background: #e5e7eb;
-        border-radius: 2px;
-      }
-
-      /* Scrollbar for Modal */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f1f1;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
+        /* Scrollbar for Modal */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
-  </head>
-  <body
-    class="bg-gray-100 h-screen w-screen relative flex flex-col md:flex-row overflow-hidden"
-  >
+</head>
+<body class="bg-gray-100 h-screen w-screen relative flex flex-col md:flex-row overflow-hidden">
+
     <!-- Flash Overlay -->
-    <div
-      id="flash-overlay"
-      class="fixed inset-0 bg-white pointer-events-none opacity-0 z-[9999]"
-    ></div>
+    <div id="flash-overlay" class="fixed inset-0 bg-white pointer-events-none opacity-0 z-[9999]"></div>
 
     <!-- Prompt History Modal (Hidden by default) -->
-    <div
-      id="prompts-modal"
-      class="fixed inset-0 bg-black/50 z-[10000] hidden flex items-center justify-center p-4 backdrop-blur-sm"
-    >
-      <div
-        class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col modal-enter overflow-hidden"
-      >
-        <!-- Modal Header -->
-        <div
-          class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50"
-        >
-          <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <span class="text-2xl">📜</span> Prompt History
-          </h2>
-          <button
-            id="close-modal-btn"
-            class="text-gray-400 hover:text-gray-800 transition p-2 cursor-pointer"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+    <div id="prompts-modal" class="fixed inset-0 bg-black/50 z-[10000] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col modal-enter overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <span class="text-2xl">📜</span> Prompt History
+                </h2>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-800 transition p-2 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div id="prompts-list" class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gray-50/50">
+                <!-- Content will be injected here -->
+            </div>
         </div>
-        <!-- Modal Body -->
-        <div
-          id="prompts-list"
-          class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gray-50/50"
-        >
-          <!-- Content will be injected here -->
-        </div>
-      </div>
     </div>
 
     <!-- Header / Controls -->
-    <div
-      class="absolute top-4 right-4 z-50 flex items-center gap-3 flex-wrap justify-end pointer-events-none"
-    >
-      <!-- Beauty Control -->
-      <div
-        class="bg-white/90 backdrop-blur-sm border border-gray-200 px-4 py-2 rounded-full shadow-md flex items-center gap-2 pointer-events-auto"
-      >
-        <span class="text-xs font-bold text-gray-500 uppercase tracking-wide"
-          >Beauty</span
-        >
-        <input
-          id="beauty-slider"
-          type="range"
-          min="0"
-          max="10"
-          value="5"
-          class="w-24 accent-pink-500"
-        />
-        <span
-          id="beauty-val"
-          class="text-xs font-bold text-pink-500 w-4 text-center"
-          >5</span
-        >
-      </div>
+    <div class="absolute top-4 right-4 z-50 flex items-center gap-3 flex-wrap justify-end pointer-events-none">
 
-      <!-- New Prompts Button (Hidden by default) -->
-      <button
-        id="prompts-btn"
-        class="bg-white border-2 border-blue-500 text-blue-500 px-5 py-2 rounded-full font-bold hover:bg-blue-50 transition shadow-lg cursor-pointer select-none hidden pointer-events-auto"
-      >
-        PROMPTS
-      </button>
+        <!-- Beauty Control -->
+        <div class="bg-white/90 backdrop-blur-sm border border-gray-200 px-4 py-2 rounded-full shadow-md flex items-center gap-2 pointer-events-auto">
+            <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Beauty</span>
+            <input id="beauty-slider" type="range" min="0" max="10" value="5" class="w-24 accent-pink-500">
+            <span id="beauty-val" class="text-xs font-bold text-pink-500 w-4 text-center">5</span>
+        </div>
 
-      <button
-        id="delete-btn"
-        class="bg-white border-2 border-red-500 text-red-500 px-5 py-2 rounded-full font-bold hover:bg-red-50 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none hidden md:block pointer-events-auto"
-      >
-        DELETE
-      </button>
-      <button
-        id="download-btn"
-        class="bg-white border-2 border-black px-5 py-2 rounded-full font-bold hover:bg-gray-100 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none pointer-events-auto"
-      >
-        DOWNLOAD
-      </button>
+        <!-- New Prompts Button (Hidden by default) -->
+        <button id="prompts-btn" class="bg-white border-2 border-blue-500 text-blue-500 px-5 py-2 rounded-full font-bold hover:bg-blue-50 transition shadow-lg cursor-pointer select-none hidden pointer-events-auto">
+            PROMPTS
+        </button>
+
+        <button id="delete-btn" class="bg-white border-2 border-red-500 text-red-500 px-5 py-2 rounded-full font-bold hover:bg-red-50 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none hidden md:block pointer-events-auto">
+            DELETE
+        </button>
+        <button id="download-btn" class="bg-white border-2 border-black px-5 py-2 rounded-full font-bold hover:bg-gray-100 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none pointer-events-auto">
+            DOWNLOAD
+        </button>
     </div>
 
     <!-- Left Side: Camera Area -->
-    <div
-      class="w-full h-1/2 md:w-1/2 md:h-full flex items-center justify-center relative p-4"
-      id="camera-zone"
-    >
-      <div
-        class="relative w-[320px] md:w-[450px] transition-all duration-500"
-        id="camera-container"
-      >
-        <div
-          class="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[240px] z-0"
-          id="printer-slot"
-        ></div>
-        <img
-          src="https://wgzhao.me/images/img/X5CczwV7I?w=800&fm=png"
-          alt="Instant Camera"
-          class="w-full relative z-20 pointer-events-none drop-shadow-2xl select-none"
-          id="camera-img"
-        />
-        <!-- Lens wrapper opacity controlled by JS -->
-        <div
-          id="lens-wrapper"
-          class="absolute z-30 overflow-hidden rounded-full bg-[#111] border-4 border-gray-800/50 shadow-inner"
-          style="opacity: 0; transition: opacity 0.3s"
-        >
-          <video
-            id="webcam"
-            autoplay
-            playsinline
-            muted
-            class="w-full h-full object-cover transform scale-x-[-1]"
-          ></video>
+    <div class="w-full h-1/2 md:w-1/2 md:h-full flex items-center justify-center relative p-4" id="camera-zone">
+        <div class="relative w-[320px] md:w-[450px] transition-all duration-500" id="camera-container">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[240px] z-0" id="printer-slot"></div>
+            <img src="https://wgzhao.me/images/img/X5CczwV7I?w=800&fm=png" alt="Instant Camera" class="w-full relative z-20 pointer-events-none drop-shadow-2xl select-none" id="camera-img">
+            <!-- Lens wrapper opacity controlled by JS -->
+            <div id="lens-wrapper" class="absolute z-30 overflow-hidden rounded-full bg-[#111] border-4 border-gray-800/50 shadow-inner" style="opacity: 0; transition: opacity 0.3s;">
+                <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover transform scale-x-[-1]"></video>
+            </div>
+            <div id="shutter-btn" class="absolute z-40 rounded-full cursor-pointer hover:bg-white/10 active:bg-white/20 transition" title="Take Photo"></div>
+            <div id="status-light" class="absolute top-[18%] right-[28%] w-3 h-3 rounded-full bg-red-500 z-30 shadow-[0_0_10px_red] transition-colors duration-300"></div>
         </div>
-        <div
-          id="shutter-btn"
-          class="absolute z-40 rounded-full cursor-pointer hover:bg-white/10 active:bg-white/20 transition"
-          title="Take Photo"
-        ></div>
-        <div
-          id="status-light"
-          class="absolute top-[18%] right-[28%] w-3 h-3 rounded-full bg-red-500 z-30 shadow-[0_0_10px_red] transition-colors duration-300"
-        ></div>
-      </div>
     </div>
 
     <!-- Right Side: Gallery -->
-    <div
-      class="w-full h-1/2 md:w-1/2 md:h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] relative overflow-hidden"
-      id="gallery-zone"
-    >
-      <div
-        class="absolute inset-0 pointer-events-none flex items-center justify-center text-gray-300 font-bold text-4xl uppercase tracking-widest select-none opacity-50"
-      >
-        Drop Here
-      </div>
+    <div class="w-full h-1/2 md:w-1/2 md:h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] relative overflow-hidden" id="gallery-zone">
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center text-gray-300 font-bold text-4xl uppercase tracking-widest select-none opacity-50">Drop Here</div>
     </div>
 
     <canvas id="render-canvas" class="hidden"></canvas>
 
     <script>
-      const CAMERA_CONFIG = {
-        lensTop: 50.5,
-        lensLeft: 52.5,
-        lensSize: 20.5,
-        btnTop: 36,
-        btnLeft: 15,
-        btnSize: 10,
-      };
+        const CAMERA_CONFIG = { lensTop: 50.5, lensLeft: 52.5, lensSize: 20.5, btnTop: 36, btnLeft: 15, btnSize: 10 };
 
-      let selectedPhotoId = null;
-      let dragItem = null;
-      let dragOffset = { x: 0, y: 0 };
-      let startPos = { x: 0, y: 0 };
-      let isDragging = false;
-      let zIndexCounter = 100;
-      let audioContext = null;
+        let selectedPhotoId = null;
+        let dragItem = null;
+        let dragOffset = { x: 0, y: 0 };
+        let startPos = { x: 0, y: 0 };
+        let isDragging = false;
+        let zIndexCounter = 100;
 
-      // Elements
-      const video = document.getElementById("webcam");
-      const lensWrapper = document.getElementById("lens-wrapper");
-      const shutterBtn = document.getElementById("shutter-btn");
-      const flashOverlay = document.getElementById("flash-overlay");
-      const printerSlot = document.getElementById("printer-slot");
-      const galleryZone = document.getElementById("gallery-zone");
-      const statusLight = document.getElementById("status-light");
-      const downloadBtn = document.getElementById("download-btn");
-      const deleteBtn = document.getElementById("delete-btn");
-      const beautySlider = document.getElementById("beauty-slider");
-      const beautyVal = document.getElementById("beauty-val");
-      const promptsBtn = document.getElementById("prompts-btn");
-      const promptsModal = document.getElementById("prompts-modal");
-      const promptsList = document.getElementById("prompts-list");
-      const closeModalBtn = document.getElementById("close-modal-btn");
+        // Elements
+        const video = document.getElementById('webcam');
+        const lensWrapper = document.getElementById('lens-wrapper');
+        const shutterBtn = document.getElementById('shutter-btn');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const printerSlot = document.getElementById('printer-slot');
+        const galleryZone = document.getElementById('gallery-zone');
+        const statusLight = document.getElementById('status-light');
+        const downloadBtn = document.getElementById('download-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+        const beautySlider = document.getElementById('beauty-slider');
+        const beautyVal = document.getElementById('beauty-val');
+        const promptsBtn = document.getElementById('prompts-btn');
+        const promptsModal = document.getElementById('prompts-modal');
+        const promptsList = document.getElementById('prompts-list');
+        const closeModalBtn = document.getElementById('close-modal-btn');
 
-      // --- 1. JSON IMPORT LOGIC ---
-      async function tryLoadPrompts() {
-        try {
-          // 尝试动态导入本地 json 文件
-          // 注意：这需要服务器环境支持 (http://localhost)
-          const module = await import("./prompts.json", {
-            with: { type: "json" },
-          });
-          const data = module.default;
+        // --- 1. JSON IMPORT LOGIC ---
+        async function tryLoadPrompts() {
+            try {
+                // 尝试动态导入本地 json 文件
+                // 注意：这需要服务器环境支持 (http://localhost)
+                const module = await import('./prompts.json', { with: { type: 'json' } });
+                const data = module.default;
 
-          if (data && data.userPrompts) {
-            initPromptsFeature(data.userPrompts);
-          }
-        } catch (e) {
-          console.warn(
-            "Prompts JSON import failed (likely due to local file access restriction). Hiding prompts button.",
-            e
-          );
-          // 失败时不显示按钮
+                if (data && data.userPrompts) {
+                    initPromptsFeature(data.userPrompts);
+                }
+            } catch (e) {
+                console.warn("Prompts JSON import failed (likely due to local file access restriction). Hiding prompts button.", e);
+            }
         }
-      }
 
-      function initPromptsFeature(prompts) {
-        // 显示按钮
-        promptsBtn.classList.remove("hidden");
+        function initPromptsFeature(prompts) {
+            // 显示按钮
+            promptsBtn.classList.remove('hidden');
 
-        // 渲染列表
-        promptsList.innerHTML = prompts
-          .map((item, index) => {
-            let imagesHtml = "";
-            if (item.imgs && item.imgs.length > 0) {
-              imagesHtml = `
+            // 渲染列表
+            promptsList.innerHTML = prompts.map((item, index) => {
+                let imagesHtml = '';
+                if (item.imgs && item.imgs.length > 0) {
+                    imagesHtml = `
                         <div class="grid grid-cols-3 gap-2 mt-3">
-                            ${item.imgs
-                              .map((url) => {
+                            ${item.imgs.map(url => {
                                 // 使用参数调整大小以作为缩略图
-                                const thumbUrl = url.includes("?")
-                                  ? `${url}&w=200&h=200&fit=crop`
-                                  : `${url}?w=200&h=200&fit=crop`;
+                                const thumbUrl = url.includes('?') ? `${url}&w=200&h=200&fit=cover` : `${url}?w=200&h=200&fit=cover`;
                                 return `
                                     <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                                         <img src="${thumbUrl}" class="w-full h-full object-cover hover:scale-110 transition duration-300" loading="lazy" alt="Prompt result">
                                     </div>
                                 `;
-                              })
-                              .join("")}
+                            }).join('')}
                         </div>
                     `;
-            }
+                }
 
-            return `
+                return `
                     <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
                         <div class="flex items-start gap-3">
                             <div class="bg-blue-100 text-blue-600 font-bold w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0 text-sm">${index + 1}</div>
@@ -402,397 +216,244 @@
                         </div>
                     </div>
                 `;
-          })
-          .join("");
+            }).join('');
 
-        // 绑定事件
-        promptsBtn.addEventListener("click", () => {
-          promptsModal.classList.remove("hidden");
-        });
+            // 绑定事件
+            promptsBtn.addEventListener('click', () => {
+                promptsModal.classList.remove('hidden');
+            });
 
-        closeModalBtn.addEventListener("click", () => {
-          promptsModal.classList.add("hidden");
-        });
+            closeModalBtn.addEventListener('click', () => {
+                promptsModal.classList.add('hidden');
+            });
 
-        promptsModal.addEventListener("click", (e) => {
-          if (e.target === promptsModal) {
-            promptsModal.classList.add("hidden");
-          }
-        });
-      }
-
-      // --- 2. CAMERA LOGIC ---
-      async function initCamera() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-          });
-          video.srcObject = stream;
-          statusLight.classList.remove("bg-red-500", "shadow-[0_0_10px_red]");
-          statusLight.classList.add("bg-green-500", "shadow-[0_0_10px_green]");
-        } catch (err) {
-          video.style.display = "none";
-          lensWrapper.style.backgroundColor = "#1a1a1a";
+            promptsModal.addEventListener('click', (e) => {
+                if (e.target === promptsModal) {
+                    promptsModal.classList.add('hidden');
+                }
+            });
         }
-        document.addEventListener("click", initAudioContext, { once: true });
-        document.addEventListener("keydown", initAudioContext, { once: true });
-        updateControls();
-        applyCalibration(); // 立即应用位置
-        tryLoadPrompts(); // 尝试加载 Prompt 列表
-      }
 
-      function initAudioContext() {
-        if (!audioContext) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (AudioContext) audioContext = new AudioContext();
-        } else if (audioContext.state === "suspended") {
-          audioContext.resume();
-        }
-      }
-
-      function applyCalibration() {
-        lensWrapper.style.top = `${CAMERA_CONFIG.lensTop}%`;
-        lensWrapper.style.left = `${CAMERA_CONFIG.lensLeft}%`;
-        lensWrapper.style.width = `${CAMERA_CONFIG.lensSize}%`;
-        lensWrapper.style.height = `${CAMERA_CONFIG.lensSize}%`;
-        lensWrapper.style.aspectRatio = "1/1";
-        lensWrapper.style.opacity = "1"; // 位置设置好后再显示
-        shutterBtn.style.top = `${CAMERA_CONFIG.btnTop}%`;
-        shutterBtn.style.left = `${CAMERA_CONFIG.btnLeft}%`;
-        shutterBtn.style.width = `${CAMERA_CONFIG.btnSize}%`;
-        shutterBtn.style.aspectRatio = "1/1";
-      }
-
-      beautySlider.addEventListener(
-        "input",
-        (e) => (beautyVal.innerText = e.target.value)
-      );
-
-      // --- SOUND ---
-      function playShutterSound() {
-        initAudioContext();
-        if (!audioContext) return;
-        const t = audioContext.currentTime;
-        const oscLow = audioContext.createOscillator();
-        oscLow.type = "square";
-        oscLow.frequency.setValueAtTime(150, t);
-        oscLow.frequency.exponentialRampToValueAtTime(40, t + 0.1);
-        const gainLow = audioContext.createGain();
-        gainLow.gain.setValueAtTime(0.5, t);
-        gainLow.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-        oscLow.connect(gainLow);
-        gainLow.connect(audioContext.destination);
-        oscLow.start(t);
-        oscLow.stop(t + 0.1);
-        const oscHigh = audioContext.createOscillator();
-        oscHigh.type = "sawtooth";
-        oscHigh.frequency.setValueAtTime(800, t);
-        oscHigh.frequency.exponentialRampToValueAtTime(100, t + 0.15);
-        const gainHigh = audioContext.createGain();
-        gainHigh.gain.setValueAtTime(0.3, t);
-        gainHigh.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
-        oscHigh.connect(gainHigh);
-        gainHigh.connect(audioContext.destination);
-        oscHigh.start(t);
-        oscHigh.stop(t + 0.15);
-        const bSize = audioContext.sampleRate * 0.15;
-        const buff = audioContext.createBuffer(
-          1,
-          bSize,
-          audioContext.sampleRate
-        );
-        const d = buff.getChannelData(0);
-        for (let i = 0; i < bSize; i++) d[i] = Math.random() * 2 - 1;
-        const noise = audioContext.createBufferSource();
-        noise.buffer = buff;
-        const nGain = audioContext.createGain();
-        nGain.gain.setValueAtTime(0.8, t);
-        nGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
-        noise.connect(nGain);
-        nGain.connect(audioContext.destination);
-        noise.start(t);
-      }
-
-      // --- BEAUTY & PHOTO ---
-      function applySmartSmooth(ctx, w, h, level) {
-        if (level <= 0) return;
-        const srcData = ctx.getImageData(0, 0, w, h);
-        const src = srcData.data;
-
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = w;
-        tempCanvas.height = h;
-        const tempCtx = tempCanvas.getContext("2d");
-        tempCtx.filter = `blur(${2 + level * 1.5}px)`;
-        tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
-        const blurData = tempCtx.getImageData(0, 0, w, h);
-        const blurred = blurData.data;
-
-        const outData = ctx.createImageData(w, h);
-        const dst = outData.data;
-        const threshold = 15 + level * 2;
-
-        for (let i = 0; i < src.length; i += 4) {
-          const r = src[i],
-            g = src[i + 1],
-            b = src[i + 2],
-            a = src[i + 3];
-          const isSkin =
-            r > 45 &&
-            g > 40 &&
-            b > 20 &&
-            r > g &&
-            r > b &&
-            Math.abs(r - g) > 10;
-          if (isSkin) {
-            const diff =
-              Math.abs(r - blurred[i]) +
-              Math.abs(g - blurred[i + 1]) +
-              Math.abs(b - blurred[i + 2]);
-            let f = 0;
-            if (diff < threshold) {
-              f = 1 - diff / threshold;
-              f = Math.min(f * (level / 5), 0.8);
+        // --- 2. CAMERA LOGIC ---
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                statusLight.classList.remove('bg-red-500', 'shadow-[0_0_10px_red]');
+                statusLight.classList.add('bg-green-500', 'shadow-[0_0_10px_green]');
+            } catch (err) {
+                video.style.display = 'none';
+                lensWrapper.style.backgroundColor = '#1a1a1a';
             }
-            dst[i] = r * (1 - f) + blurred[i] * f;
-            dst[i + 1] = g * (1 - f) + blurred[i + 1] * f;
-            dst[i + 2] = b * (1 - f) + blurred[i + 2] * f;
-          } else {
-            dst[i] = r;
-            dst[i + 1] = g;
-            dst[i + 2] = b;
-          }
-          dst[i + 3] = a;
-        }
-        ctx.putImageData(outData, 0, 0);
-      }
-
-      function applyWhitening(ctx, w, h, level) {
-        if (level <= 0) return;
-        ctx.save();
-        ctx.globalCompositeOperation = "soft-light";
-        ctx.fillStyle = `rgba(255, 250, 240, ${level * 0.06})`;
-        ctx.fillRect(0, 0, w, h);
-        ctx.restore();
-      }
-
-      shutterBtn.addEventListener("click", () => {
-        playShutterSound();
-        flashOverlay.classList.remove("flash-active");
-        void flashOverlay.offsetWidth;
-        flashOverlay.classList.add("flash-active");
-
-        const cvs = document.createElement("canvas");
-        const tW = 600,
-          tH = 800;
-        cvs.width = tW;
-        cvs.height = tH;
-        const ctx = cvs.getContext("2d");
-        const active = video.style.display !== "none";
-        const lvl = parseInt(beautySlider.value);
-
-        if (active) {
-          const vR = video.videoWidth / video.videoHeight,
-            tR = tW / tH;
-          let rW, rH, sX, sY;
-          if (vR > tR) {
-            rH = video.videoHeight;
-            rW = rH * tR;
-            sX = (video.videoWidth - rW) / 2;
-            sY = 0;
-          } else {
-            rW = video.videoWidth;
-            rH = rW / tR;
-            sX = 0;
-            sY = (video.videoHeight - rH) / 2;
-          }
-
-          ctx.translate(tW, 0);
-          ctx.scale(-1, 1);
-          ctx.drawImage(video, sX, sY, rW, rH, 0, 0, tW, tH);
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
-          applySmartSmooth(ctx, tW, tH, lvl);
-          applyWhitening(ctx, tW, tH, lvl);
-        } else {
-          drawFallback(ctx, tW, tH);
+            updateControls();
+            applyCalibration(); // 立即应用位置
+            tryLoadPrompts(); // 尝试加载 Prompt 列表
         }
 
-        const ts = new Date().toLocaleString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "numeric",
-          hour12: true,
+        function applyCalibration() {
+            lensWrapper.style.top = `${CAMERA_CONFIG.lensTop}%`;
+            lensWrapper.style.left = `${CAMERA_CONFIG.lensLeft}%`;
+            lensWrapper.style.width = `${CAMERA_CONFIG.lensSize}%`;
+            lensWrapper.style.height = `${CAMERA_CONFIG.lensSize}%`;
+            lensWrapper.style.aspectRatio = '1/1';
+            lensWrapper.style.opacity = '1'; // 位置设置好后再显示
+            shutterBtn.style.top = `${CAMERA_CONFIG.btnTop}%`;
+            shutterBtn.style.left = `${CAMERA_CONFIG.btnLeft}%`;
+            shutterBtn.style.width = `${CAMERA_CONFIG.btnSize}%`;
+            shutterBtn.style.aspectRatio = '1/1';
+        }
+
+        beautySlider.addEventListener('input', (e) => beautyVal.innerText = e.target.value);
+
+        // --- SOUND ---
+        function playShutterSound() {
+            // 直接播放本地文件
+            const audio = new Audio('./polaroid.mp3');
+            audio.play().catch(e => console.warn("Audio play failed (check file path or user interaction)", e));
+        }
+
+        // --- BEAUTY & PHOTO ---
+        function applySmartSmooth(ctx, w, h, level) {
+            if (level <= 0) return;
+            const srcData = ctx.getImageData(0, 0, w, h);
+            const src = srcData.data;
+
+            const tempCanvas = document.createElement('canvas'); tempCanvas.width = w; tempCanvas.height = h;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.filter = `blur(${2 + level * 1.5}px)`;
+            tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
+            const blurData = tempCtx.getImageData(0, 0, w, h);
+            const blurred = blurData.data;
+
+            const outData = ctx.createImageData(w, h); const dst = outData.data;
+            const threshold = 15 + level * 2;
+
+            for (let i = 0; i < src.length; i += 4) {
+                const r = src[i], g = src[i+1], b = src[i+2], a = src[i+3];
+                const isSkin = (r > 45 && g > 40 && b > 20 && r > g && r > b && Math.abs(r - g) > 10);
+                if (isSkin) {
+                    const diff = Math.abs(r - blurred[i]) + Math.abs(g - blurred[i+1]) + Math.abs(b - blurred[i+2]);
+                    let f = 0;
+                    if (diff < threshold) { f = 1 - (diff/threshold); f = Math.min(f * (level/5), 0.8); }
+                    dst[i] = r*(1-f) + blurred[i]*f; dst[i+1] = g*(1-f) + blurred[i+1]*f; dst[i+2] = b*(1-f) + blurred[i+2]*f;
+                } else {
+                    dst[i] = r; dst[i+1] = g; dst[i+2] = b;
+                }
+                dst[i+3] = a;
+            }
+            ctx.putImageData(outData, 0, 0);
+        }
+
+        function applyWhitening(ctx, w, h, level) {
+            if (level <= 0) return;
+            ctx.save(); ctx.globalCompositeOperation = 'soft-light';
+            ctx.fillStyle = `rgba(255, 250, 240, ${level * 0.06})`;
+            ctx.fillRect(0,0, w, h); ctx.restore();
+        }
+
+        shutterBtn.addEventListener('click', () => {
+            playShutterSound();
+            flashOverlay.classList.remove('flash-active');
+            void flashOverlay.offsetWidth; flashOverlay.classList.add('flash-active');
+
+            const cvs = document.createElement('canvas');
+            const tW = 600, tH = 800; cvs.width = tW; cvs.height = tH;
+            const ctx = cvs.getContext('2d');
+            const active = video.style.display !== 'none';
+            const lvl = parseInt(beautySlider.value);
+
+            if (active) {
+                const vR = video.videoWidth / video.videoHeight, tR = tW / tH;
+                let rW, rH, sX, sY;
+                if (vR > tR) { rH = video.videoHeight; rW = rH * tR; sX = (video.videoWidth - rW)/2; sY = 0; }
+                else { rW = video.videoWidth; rH = rW / tR; sX = 0; sY = (video.videoHeight - rH)/2; }
+
+                ctx.translate(tW, 0); ctx.scale(-1, 1);
+                ctx.drawImage(video, sX, sY, rW, rH, 0, 0, tW, tH);
+                ctx.setTransform(1,0,0,1,0,0);
+                applySmartSmooth(ctx, tW, tH, lvl); applyWhitening(ctx, tW, tH, lvl);
+            } else {
+                drawFallback(ctx, tW, tH);
+            }
+
+            const ts = new Date().toLocaleString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'numeric', minute:'numeric', hour12:true });
+            createPolaroid(cvs.toDataURL('image/png'), ts);
         });
-        createPolaroid(cvs.toDataURL("image/png"), ts);
-      });
 
-      function drawFallback(ctx, w, h) {
-        ctx.fillStyle = "#111";
-        ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 80000; i++) {
-          const x = Math.random() * w,
-            y = Math.random() * h,
-            b = Math.random() * 20 + 10;
-          ctx.fillStyle = `rgba(${b},${b},${b},0.1)`;
-          ctx.fillRect(x, y, 2, 2);
+        function drawFallback(ctx, w, h) {
+            ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
+            for(let i=0; i<80000; i++) {
+                const x=Math.random()*w, y=Math.random()*h, b=Math.random()*20+10;
+                ctx.fillStyle = `rgba(${b},${b},${b},0.1)`; ctx.fillRect(x,y,2,2);
+            }
         }
-      }
 
-      function createPolaroid(url, txt) {
-        const id = Date.now();
-        const div = document.createElement("div");
-        div.className =
-          "absolute bg-[#fdfdfd] shadow-lg p-3 flex flex-col items-center justify-start in-printer developing draggable";
-        div.style.width = "160px";
-        div.style.height = "240px";
-        div.style.paddingBottom = "30px";
-        div.id = `photo-${id}`;
+        function createPolaroid(url, txt) {
+            const id = Date.now();
+            const div = document.createElement('div');
+            div.className = 'absolute bg-[#fdfdfd] shadow-lg p-3 flex flex-col items-center justify-start in-printer developing draggable';
+            div.style.width = '160px'; div.style.height = '240px'; div.style.paddingBottom = '30px';
+            div.id = `photo-${id}`;
 
-        div.innerHTML = `<img src="${url}" class="w-full aspect-[3/4] object-cover bg-gray-900 pointer-events-none select-none" draggable="false">
+            div.innerHTML = `<img src="${url}" class="w-full aspect-[3/4] object-cover bg-gray-900 pointer-events-none select-none" draggable="false">
                              <div class="handwritten text-gray-600 text-xs mt-3 text-center w-full leading-tight pointer-events-none select-none">${txt}</div>`;
 
-        printerSlot.appendChild(div);
-        setTimeout(() => div.classList.add("ejecting"), 200);
-        div.addEventListener("mousedown", startDrag);
-        div.addEventListener("touchstart", startDrag, { passive: false });
-        div.addEventListener("click", (e) => e.stopPropagation());
-      }
+            printerSlot.appendChild(div);
+            setTimeout(() => div.classList.add('ejecting'), 200);
+            div.addEventListener('mousedown', startDrag);
+            div.addEventListener('touchstart', startDrag, {passive:false});
+            div.addEventListener('click', e => e.stopPropagation());
+        }
 
-      // --- DRAG ---
-      function startDrag(e) {
-        if (e.type === "touchstart") e.preventDefault();
-        initAudioContext();
-        dragItem = e.currentTarget;
-        isDragging = false;
-        const cx = e.type.includes("touch") ? e.touches[0].clientX : e.clientX;
-        const cy = e.type.includes("touch") ? e.touches[0].clientY : e.clientY;
-        startPos = { x: cx, y: cy };
-        const r = dragItem.getBoundingClientRect();
-        dragOffset = { x: cx - r.left, y: cy - r.top };
-        selectPhoto(dragItem);
-        dragItem.style.zIndex = ++zIndexCounter;
-        document.addEventListener("mousemove", onDrag);
-        document.addEventListener("mouseup", stopDrag);
-        document.addEventListener("touchmove", onDrag, { passive: false });
-        document.addEventListener("touchend", stopDrag);
-      }
-      function onDrag(e) {
-        if (!dragItem) return;
-        if (e.type === "touchmove") e.preventDefault();
-        const cx = e.type.includes("touch") ? e.touches[0].clientX : e.clientX;
-        const cy = e.type.includes("touch") ? e.touches[0].clientY : e.clientY;
-        if (!isDragging) {
-          if (Math.abs(cx - startPos.x) > 3 || Math.abs(cy - startPos.y) > 3) {
-            isDragging = true;
-            dragItem.classList.add("is-dragging");
-            if (dragItem.parentNode !== document.body) {
-              const r = dragItem.getBoundingClientRect();
-              dragItem.style.left = `${r.left}px`;
-              dragItem.style.top = `${r.top}px`;
-              dragItem.style.transform = "none";
-              dragItem.classList.remove("ejecting", "in-printer", "developing");
-              document.body.appendChild(dragItem);
+        // --- DRAG ---
+        function startDrag(e) {
+            if(e.type==='touchstart') e.preventDefault();
+            dragItem = e.currentTarget; isDragging = false;
+            const cx = e.type.includes('touch')?e.touches[0].clientX:e.clientX;
+            const cy = e.type.includes('touch')?e.touches[0].clientY:e.clientY;
+            startPos = {x:cx, y:cy};
+            const r = dragItem.getBoundingClientRect();
+            dragOffset = {x:cx-r.left, y:cy-r.top};
+            selectPhoto(dragItem);
+            dragItem.style.zIndex = ++zIndexCounter;
+            document.addEventListener('mousemove', onDrag); document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchmove', onDrag, {passive:false}); document.addEventListener('touchend', stopDrag);
+        }
+        function onDrag(e) {
+            if(!dragItem) return;
+            if(e.type==='touchmove') e.preventDefault();
+            const cx = e.type.includes('touch')?e.touches[0].clientX:e.clientX;
+            const cy = e.type.includes('touch')?e.touches[0].clientY:e.clientY;
+            if(!isDragging) {
+                if(Math.abs(cx-startPos.x)>3 || Math.abs(cy-startPos.y)>3) {
+                    isDragging=true; dragItem.classList.add('is-dragging');
+                    if(dragItem.parentNode!==document.body) {
+                        const r = dragItem.getBoundingClientRect();
+                        dragItem.style.left = `${r.left}px`; dragItem.style.top = `${r.top}px`;
+                        dragItem.style.transform = 'none';
+                        dragItem.classList.remove('ejecting','in-printer','developing');
+                        document.body.appendChild(dragItem);
+                    }
+                }
             }
-          }
+            if(isDragging) { dragItem.style.left = `${cx-dragOffset.x}px`; dragItem.style.top = `${cy-dragOffset.y}px`; }
         }
-        if (isDragging) {
-          dragItem.style.left = `${cx - dragOffset.x}px`;
-          dragItem.style.top = `${cy - dragOffset.y}px`;
+        function stopDrag() {
+            if(!dragItem) return;
+            dragItem.classList.remove('is-dragging');
+            if(isDragging) {
+                const gr = galleryZone.getBoundingClientRect();
+                const ir = dragItem.getBoundingClientRect();
+                if(ir.left + ir.width/2 > gr.left) dragItem.style.transform = `rotate(${(Math.random()*8)-4}deg)`;
+            }
+            dragItem = null;
+            document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchmove', onDrag); document.removeEventListener('touchend', stopDrag);
         }
-      }
-      function stopDrag() {
-        if (!dragItem) return;
-        dragItem.classList.remove("is-dragging");
-        if (isDragging) {
-          const gr = galleryZone.getBoundingClientRect();
-          const ir = dragItem.getBoundingClientRect();
-          if (ir.left + ir.width / 2 > gr.left)
-            dragItem.style.transform = `rotate(${Math.random() * 8 - 4}deg)`;
+
+        function selectPhoto(el) {
+            document.querySelectorAll('.selected-photo').forEach(p => p.classList.remove('selected-photo'));
+            el.classList.add('selected-photo'); selectedPhotoId = el.id; updateControls();
         }
-        dragItem = null;
-        document.removeEventListener("mousemove", onDrag);
-        document.removeEventListener("mouseup", stopDrag);
-        document.removeEventListener("touchmove", onDrag);
-        document.removeEventListener("touchend", stopDrag);
-      }
-
-      function selectPhoto(el) {
-        document
-          .querySelectorAll(".selected-photo")
-          .forEach((p) => p.classList.remove("selected-photo"));
-        el.classList.add("selected-photo");
-        selectedPhotoId = el.id;
-        updateControls();
-      }
-      function deselectAll() {
-        document
-          .querySelectorAll(".selected-photo")
-          .forEach((p) => p.classList.remove("selected-photo"));
-        selectedPhotoId = null;
-        updateControls();
-      }
-      function updateControls() {
-        const has = !!selectedPhotoId;
-        downloadBtn.disabled = !has;
-        deleteBtn.disabled = !has;
-        if (has) deleteBtn.classList.remove("hidden");
-      }
-
-      document.addEventListener("mousedown", (e) => {
-        if (
-          !e.target.closest(".draggable") &&
-          !e.target.closest("button") &&
-          !e.target.closest("input") &&
-          !e.target.closest("#prompts-modal")
-        )
-          deselectAll();
-      });
-
-      deleteBtn.addEventListener("click", () => {
-        if (selectedPhotoId) {
-          const el = document.getElementById(selectedPhotoId);
-          if (el) {
-            el.style.transition = "all 0.2s";
-            el.style.transform = "scale(0.5)";
-            el.style.opacity = "0";
-            setTimeout(() => el.remove(), 200);
-          }
-          deselectAll();
+        function deselectAll() {
+            document.querySelectorAll('.selected-photo').forEach(p => p.classList.remove('selected-photo'));
+            selectedPhotoId = null; updateControls();
         }
-      });
-
-      downloadBtn.addEventListener("click", () => {
-        if (selectedPhotoId) {
-          const el = document.getElementById(selectedPhotoId);
-          const cvs = document.getElementById("render-canvas");
-          const ctx = cvs.getContext("2d");
-          const img = el.querySelector("img");
-          const txt = el.querySelector(".handwritten").innerText;
-          const W = 600,
-            H = 860,
-            P = 40;
-          cvs.width = W;
-          cvs.height = H;
-          ctx.fillStyle = "#fdfdfd";
-          ctx.fillRect(0, 0, W, H);
-          const iW = W - 80,
-            iH = iW * (4 / 3);
-          ctx.drawImage(img, P, P, iW, iH);
-          ctx.fillStyle = "#333";
-          ctx.font = '40px "Permanent Marker"';
-          ctx.textAlign = "center";
-          ctx.fillText(txt, W / 2, H - 60);
-          const a = document.createElement("a");
-          a.download = `polaroid-${Date.now()}.png`;
-          a.href = cvs.toDataURL();
-          a.click();
+        function updateControls() {
+            const has = !!selectedPhotoId; downloadBtn.disabled = !has; deleteBtn.disabled = !has;
+            if(has) deleteBtn.classList.remove('hidden');
         }
-      });
 
-      initCamera();
-      window.addEventListener("resize", applyCalibration);
+        document.addEventListener('mousedown', e => {
+            if(!e.target.closest('.draggable') && !e.target.closest('button') && !e.target.closest('input') && !e.target.closest('#prompts-modal')) deselectAll();
+        });
+
+        deleteBtn.addEventListener('click', () => {
+            if(selectedPhotoId) {
+                const el = document.getElementById(selectedPhotoId);
+                if(el) { el.style.transition='all 0.2s'; el.style.transform='scale(0.5)'; el.style.opacity='0'; setTimeout(()=>el.remove(),200); }
+                deselectAll();
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if(selectedPhotoId) {
+                const el = document.getElementById(selectedPhotoId);
+                const cvs = document.getElementById('render-canvas'); const ctx = cvs.getContext('2d');
+                const img = el.querySelector('img'); const txt = el.querySelector('.handwritten').innerText;
+                const W=600, H=860, P=40; cvs.width=W; cvs.height=H;
+                ctx.fillStyle='#fdfdfd'; ctx.fillRect(0,0,W,H);
+                const iW=W-80, iH=iW*(4/3);
+                ctx.drawImage(img, P, P, iW, iH);
+                ctx.fillStyle='#333'; ctx.font='40px "Permanent Marker"'; ctx.textAlign='center';
+                ctx.fillText(txt, W/2, H-60);
+                const a = document.createElement('a'); a.download=`polaroid-${Date.now()}.png`;
+                a.href=cvs.toDataURL(); a.click();
+            }
+        });
+
+        initCamera();
+        window.addEventListener('resize', applyCalibration);
     </script>
-  </body>
+</body>
 </html>
