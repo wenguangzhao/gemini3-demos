@@ -1,271 +1,411 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gemini 3 デモコレクション | AI生成の可能性を探る</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        * {
-            font-family: 'Inter', sans-serif;
-        }
+      * {
+        font-family: "Inter", sans-serif;
+      }
 
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
+      body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
 
-        .demo-item {
-            backdrop-filter: blur(16px);
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            transition: all 0.2s ease;
-        }
+      .demo-item {
+        backdrop-filter: blur(16px);
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        transition: all 0.2s ease;
+      }
 
-        .demo-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateX(4px);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
+      .demo-item:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateX(4px);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
 
-        .section-card {
-            backdrop-filter: blur(16px);
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
+      .section-card {
+        backdrop-filter: blur(16px);
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
         }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
 
-        .floating {
-            animation: float 3s ease-in-out infinite;
-        }
+      .floating {
+        animation: float 3s ease-in-out infinite;
+      }
 
-        .glow-dent-special {
-            backdrop-filter: blur(16px);
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-        }
+      .glow-dent-special {
+        backdrop-filter: blur(16px);
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+      }
 
-        .glow-dent-special:hover {
-            background: rgba(255, 255, 255, 0.22);
-        }
+      .glow-dent-special:hover {
+        background: rgba(255, 255, 255, 0.22);
+      }
     </style>
-</head>
-<body class="text-white">
+  </head>
+  <body class="text-white">
     <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <!-- Hero Section -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl md:text-6xl font-black mb-3 floating">
-                <span class="bg-white text-transparent bg-clip-text">Gemini 3</span>
-            </h1>
-            <p class="text-lg md:text-xl font-light mb-2 text-white/90">次世代AIが創る無限の可能性</p>
-            <p class="text-sm text-white/70 max-w-2xl mx-auto mb-4">
-                Google Gemini 3によって生成された様々なWebアプリケーション、UI/UXデザイン、3Dゲームのコレクション
-            </p>
-            <a href="https://github.com/wenguangzhao/gemini3-demos" target="_blank" rel="noopener noreferrer"
-               class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 text-white px-5 py-2 rounded-full font-semibold hover:bg-white/30 transition-all text-sm">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-                GitHub
-            </a>
+      <!-- Hero Section -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl md:text-6xl font-black mb-3 floating">
+          <span class="bg-white text-transparent bg-clip-text">Gemini 3</span>
+        </h1>
+        <p class="text-lg md:text-xl font-light mb-2 text-white/90">
+          次世代AIが創る無限の可能性
+        </p>
+        <p class="text-sm text-white/70 max-w-2xl mx-auto mb-4">
+          Google Gemini
+          3によって生成された様々なWebアプリケーション、UI/UXデザイン、3Dゲームのコレクション
+        </p>
+        <a
+          href="https://github.com/wenguangzhao/gemini3-demos"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 text-white px-5 py-2 rounded-full font-semibold hover:bg-white/30 transition-all text-sm"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+            />
+          </svg>
+          GitHub
+        </a>
+      </div>
+
+      <!-- Styles Section -->
+      <section class="mb-6">
+        <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">
+          <span>🎨</span>
+          <span>スタイル & UI生成</span>
+        </h2>
+        <div class="section-card rounded-lg overflow-hidden">
+          <a
+            href="./styles/scroll/index.html"
+            class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block"
+          >
+            <div class="text-2xl flex-shrink-0">📜</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">ZenFlow 3D</h3>
+              <p class="text-xs text-white/70">
+                スクロール連動3Dアニメーション -
+                デジタルノイズから禅モードへの変化
+              </p>
+            </div>
+          </a>
+
+          <a
+            href="./styles/particle/index.html"
+            class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block"
+          >
+            <div class="text-2xl flex-shrink-0">✨</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">Fluid Morph Particle</h3>
+              <p class="text-xs text-white/70">
+                流体力学パーティクルシステム - カスタムGLSLシェーダー実装
+              </p>
+            </div>
+          </a>
+
+          <a
+            href="./styles/x/index.html"
+            class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block"
+          >
+            <div class="text-2xl flex-shrink-0">𝕏</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">X (日本版) クローン</h3>
+              <p class="text-xs text-white/70">
+                X（旧Twitter）の完璧な再現 - 日本語ローカライゼーション対応
+              </p>
+            </div>
+          </a>
+
+          <a
+            href="./styles/camera/index.html"
+            class="demo-item flex items-center gap-3 p-3 block"
+          >
+            <div class="text-2xl flex-shrink-0">📷</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">インスタントカメラ</h3>
+              <p class="text-xs text-white/70">
+                レトロなポラロイド風カメラアプリ -
+                リアルタイム撮影と現像エフェクト
+              </p>
+            </div>
+          </a>
         </div>
+      </section>
 
-        <!-- Styles Section -->
-        <section class="mb-6">
-            <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🎨</span>
-                <span>スタイル & UI生成</span>
-            </h2>
-            <div class="section-card rounded-lg overflow-hidden">
-                <a href="./styles/scroll/index.html" class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block">
-                    <div class="text-2xl flex-shrink-0">📜</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">ZenFlow 3D</h3>
-                        <p class="text-xs text-white/70">スクロール連動3Dアニメーション - デジタルノイズから禅モードへの変化</p>
-                    </div>
-                </a>
-
-                <a href="./styles/particle/index.html" class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block">
-                    <div class="text-2xl flex-shrink-0">✨</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">Fluid Morph Particle</h3>
-                        <p class="text-xs text-white/70">流体力学パーティクルシステム - カスタムGLSLシェーダー実装</p>
-                    </div>
-                </a>
-
-                <a href="./styles/x/index.html" class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block">
-                    <div class="text-2xl flex-shrink-0">𝕏</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">X (日本版) クローン</h3>
-                        <p class="text-xs text-white/70">X（旧Twitter）の完璧な再現 - 日本語ローカライゼーション対応</p>
-                    </div>
-                </a>
-
-                <a href="./styles/camera/index.html" class="demo-item flex items-center gap-3 p-3 block">
-                    <div class="text-2xl flex-shrink-0">📷</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">インスタントカメラ</h3>
-                        <p class="text-xs text-white/70">レトロなポラロイド風カメラアプリ - リアルタイム撮影と現像エフェクト</p>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <!-- GlowDent Special Section -->
-        <section class="mb-6">
-            <div class="glow-dent-special rounded-lg p-4">
-                <a href="./styles/glow-dent/index.html" class="block">
-                    <div class="flex items-start gap-3 mb-3">
-                        <div class="text-2xl flex-shrink-0">🦷</div>
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <h3 class="font-semibold text-white">GlowDent クリニック</h3>
-                                <span class="text-xs bg-gradient-to-r from-pink-400 to-rose-400 text-white px-2 py-0.5 rounded-full font-semibold">PNG→HTML</span>
-                            </div>
-                            <p class="text-xs text-white/70 mb-2">歯科クリニックのランディングページ - デザイン画像から自動生成</p>
-                        </div>
-                    </div>
-                    <div class="bg-white/10 rounded-lg p-2">
-                        <p class="text-xs text-white/60 mb-1">元のデザイン画像：</p>
-                        <img src="./styles/glow-dent/original.png" alt="Original GlowDent Design" class="w-full rounded shadow-lg">
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <!-- Tools Section -->
-        <section class="mb-6">
-            <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🛠️</span>
-                <span>ツール生成</span>
-            </h2>
-            <div class="section-card rounded-lg overflow-hidden">
-                <a href="./tools/image_convert/index.html" class="demo-item flex items-center gap-3 p-3 block">
-                    <div class="text-2xl flex-shrink-0">🖼️</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">画像変換ツール</h3>
-                        <p class="text-xs text-white/70">画像のリサイズ、フォーマット変換、最適化 - リアルタイムプレビュー対応</p>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <!-- Games Section -->
-        <section class="mb-6">
-            <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🎮</span>
-                <span>3Dゲーム生成</span>
-            </h2>
-            <div class="section-card rounded-lg overflow-hidden">
-                <a href="./games/shoot/index.html" class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block">
-                    <div class="text-2xl flex-shrink-0">🔫</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">カワイイシューター FPS</h3>
-                        <p class="text-xs text-white/70">3D一人称シューティング - 可愛いスライムを倒す物理演算ゲーム</p>
-                    </div>
-                </a>
-
-                <a href="./games/minesweeper/index.html" class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block">
-                    <div class="text-2xl flex-shrink-0">💣</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">サイバースイーパー 3D</h3>
-                        <p class="text-xs text-white/70">サイバーパンクスタイルの3Dマインスイーパー - 3つの難易度レベル</p>
-                    </div>
-                </a>
-
-                <a href="./games/snake/index.html" class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block">
-                    <div class="text-2xl flex-shrink-0">🐍</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">森の小さなヘビ</h3>
-                        <p class="text-xs text-white/70">季節の変化と昼夜サイクルを持つスネークゲーム - 季節の作物を集める</p>
-                    </div>
-                </a>
-
-                <a href="./games/neko-rush/index.html" class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block">
-                    <div class="text-2xl flex-shrink-0">🐱</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">ネコラッシュ</h3>
-                        <p class="text-xs text-white/70">猫を集める3Dランナーゲーム - 計算ゲート（加減乗除）で猫の数を増やす</p>
-                    </div>
-                </a>
-
-                <a href="./games/block/index.html" class="demo-item flex items-center gap-3 p-3 block">
-                    <div class="text-2xl flex-shrink-0">🧱</div>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-white">3Dテトリスブロック</h3>
-                        <p class="text-xs text-white/70">3D空間でテトリスを体験 - クラシックなパズルゲームの新しい視点</p>
-                    </div>
-                </a>
-            </div>
-        </section>
-
-        <!-- Tech Stack -->
-        <section class="mb-6">
-            <div class="section-card rounded-lg p-4">
-                <h2 class="text-xl font-bold mb-3 text-center">🛠️ 技術スタック</h2>
-                <div class="grid grid-cols-4 md:grid-cols-8 gap-3 text-center text-xs">
-                    <div>
-                        <div class="text-xl mb-0.5">⚡</div>
-                        <div class="font-medium">Three.js</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">🎬</div>
-                        <div class="font-medium">GSAP</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">⚛️</div>
-                        <div class="font-medium">React</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">🎨</div>
-                        <div class="font-medium">Tailwind</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">🔷</div>
-                        <div class="font-medium">WebGL</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">🌊</div>
-                        <div class="font-medium">GLSL</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">🎵</div>
-                        <div class="font-medium">Audio</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">📱</div>
-                        <div class="font-medium">RWD</div>
-                    </div>
+      <!-- GlowDent Special Section -->
+      <section class="mb-6">
+        <div class="glow-dent-special rounded-lg p-4">
+          <a href="./styles/glow-dent/index.html" class="block">
+            <div class="flex items-start gap-3 mb-3">
+              <div class="text-2xl flex-shrink-0">🦷</div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <h3 class="font-semibold text-white">GlowDent クリニック</h3>
+                  <span
+                    class="text-xs bg-gradient-to-r from-pink-400 to-rose-400 text-white px-2 py-0.5 rounded-full font-semibold"
+                    >PNG→HTML</span
+                  >
                 </div>
+                <p class="text-xs text-white/70 mb-2">
+                  歯科クリニックのランディングページ - デザイン画像から自動生成
+                </p>
+              </div>
             </div>
-        </section>
+            <div class="bg-white/10 rounded-lg p-2">
+              <p class="text-xs text-white/60 mb-1">元のデザイン画像：</p>
+              <img
+                src="./styles/glow-dent/original.png"
+                alt="Original GlowDent Design"
+                class="w-full rounded shadow-lg"
+              />
+            </div>
+          </a>
+        </div>
+      </section>
 
-        <!-- Footer -->
-        <footer class="text-center py-6 border-t border-white/20">
-            <div class="mb-3">
-                <h3 class="text-lg font-bold mb-1">Gemini 3 デモコレクション</h3>
-                <p class="text-xs text-white/70">AI生成技術の可能性を探る実験的プロジェクト</p>
+      <!-- Tools Section -->
+      <section class="mb-6">
+        <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">
+          <span>🛠️</span>
+          <span>ツール生成</span>
+        </h2>
+        <div class="section-card rounded-lg overflow-hidden">
+          <a
+            href="./tools/image_convert/index.html"
+            class="demo-item flex items-center gap-3 p-3 block"
+          >
+            <div class="text-2xl flex-shrink-0">🖼️</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="font-semibold text-white">画像変換ツール</h3>
+                <span
+                  class="text-xs bg-yellow-500/80 text-white px-2 py-0.5 rounded-full font-semibold"
+                  >サーバー保存</span
+                >
+              </div>
+              <p class="text-xs text-white/70 mb-1">
+                画像のリサイズ、フォーマット変換、最適化 -
+                リアルタイムプレビュー対応
+              </p>
+              <p class="text-xs text-white/50 flex items-center gap-1">
+                <span>⚠️</span>
+                <span
+                  >画像をサーバーに一時保存 -
+                  手動削除可能、または1時間後に自動削除</span
+                >
+              </p>
             </div>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs">
-                <a href="https://github.com/wenguangzhao/gemini3-demos" target="_blank" rel="noopener noreferrer"
-                   class="flex items-center gap-1.5 hover:text-white/90 transition-colors">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                    </svg>
-                    GitHubリポジトリ
-                </a>
-                <span class="text-white/30">|</span>
-                <span class="text-white/60">GitHub Pages</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Games Section -->
+      <section class="mb-6">
+        <h2 class="text-2xl font-bold mb-2 flex items-center gap-2">
+          <span>🎮</span>
+          <span>3Dゲーム生成</span>
+        </h2>
+        <div class="section-card rounded-lg overflow-hidden">
+          <a
+            href="./games/shoot/index.html"
+            class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block"
+          >
+            <div class="text-2xl flex-shrink-0">🔫</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">カワイイシューター FPS</h3>
+              <p class="text-xs text-white/70">
+                3D一人称シューティング - 可愛いスライムを倒す物理演算ゲーム
+              </p>
             </div>
-            <p class="text-xs text-white/50 mt-3">
-                © 2025 Gemini 3 デモ。すべてのデモはGoogle Gemini 3によって生成されました。
+          </a>
+
+          <a
+            href="./games/minesweeper/index.html"
+            class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block"
+          >
+            <div class="text-2xl flex-shrink-0">💣</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">サイバースイーパー 3D</h3>
+              <p class="text-xs text-white/70">
+                サイバーパンクスタイルの3Dマインスイーパー - 3つの難易度レベル
+              </p>
+            </div>
+          </a>
+
+          <a
+            href="./games/snake/index.html"
+            class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block"
+          >
+            <div class="text-2xl flex-shrink-0">🐍</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">森の小さなヘビ</h3>
+              <p class="text-xs text-white/70">
+                季節の変化と昼夜サイクルを持つスネークゲーム -
+                季節の作物を集める
+              </p>
+            </div>
+          </a>
+
+          <a
+            href="./games/neko-rush/index.html"
+            class="demo-item flex items-center gap-3 p-3 border-b border-white/10 block"
+          >
+            <div class="text-2xl flex-shrink-0">🐱</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">ネコラッシュ</h3>
+              <p class="text-xs text-white/70">
+                猫を集める3Dランナーゲーム -
+                計算ゲート（加減乗除）で猫の数を増やす
+              </p>
+            </div>
+          </a>
+
+          <a
+            href="./games/block/index.html"
+            class="demo-item flex items-center gap-3 p-3 block"
+          >
+            <div class="text-2xl flex-shrink-0">🧱</div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-white">3Dテトリスブロック</h3>
+              <p class="text-xs text-white/70">
+                3D空間でテトリスを体験 - クラシックなパズルゲームの新しい視点
+              </p>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- Privacy Notice -->
+      <section class="mb-6">
+        <div class="section-card rounded-lg p-4">
+          <h2
+            class="text-xl font-bold mb-2 text-center flex items-center justify-center gap-2"
+          >
+            <span>🔒</span>
+            <span>プライバシーについて</span>
+          </h2>
+          <div class="text-xs text-white/80 space-y-1">
+            <p class="flex items-start gap-2">
+              <span class="flex-shrink-0">✅</span>
+              <span
+                ><strong>画像変換ツール以外</strong
+                >のすべてのデモは完全にブラウザ内で動作し、データは一切サーバーに送信されません</span
+              >
             </p>
-        </footer>
+            <p class="flex items-start gap-2">
+              <span class="flex-shrink-0">⚠️</span>
+              <span
+                ><strong>画像変換ツール</strong>のみ、<a
+                  href="https://wgzhao.me/images/usage"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="underline hover:text-white"
+                  >Image Transform API</a
+                >を使用して画像をサーバーに一時保存します（手動削除可能、または1時間後に自動削除）</span
+              >
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tech Stack -->
+      <section class="mb-6">
+        <div class="section-card rounded-lg p-4">
+          <h2 class="text-xl font-bold mb-3 text-center">🛠️ 技術スタック</h2>
+          <div
+            class="grid grid-cols-4 md:grid-cols-8 gap-3 text-center text-xs"
+          >
+            <div>
+              <div class="text-xl mb-0.5">⚡</div>
+              <div class="font-medium">Three.js</div>
+            </div>
+            <div>
+              <div class="text-xl mb-0.5">🎬</div>
+              <div class="font-medium">GSAP</div>
+            </div>
+            <div>
+              <div class="text-xl mb-0.5">⚛️</div>
+              <div class="font-medium">React</div>
+            </div>
+            <div>
+              <div class="text-xl mb-0.5">🎨</div>
+              <div class="font-medium">Tailwind</div>
+            </div>
+            <div>
+              <div class="text-xl mb-0.5">🔷</div>
+              <div class="font-medium">WebGL</div>
+            </div>
+            <div>
+              <div class="text-xl mb-0.5">🌊</div>
+              <div class="font-medium">GLSL</div>
+            </div>
+            <div>
+              <div class="text-xl mb-0.5">🎵</div>
+              <div class="font-medium">Audio</div>
+            </div>
+            <div>
+              <div class="text-xl mb-0.5">📱</div>
+              <div class="font-medium">RWD</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="text-center py-6 border-t border-white/20">
+        <div class="mb-3">
+          <h3 class="text-lg font-bold mb-1">Gemini 3 デモコレクション</h3>
+          <p class="text-xs text-white/70">
+            AI生成技術の可能性を探る実験的プロジェクト
+          </p>
+        </div>
+        <div
+          class="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs"
+        >
+          <a
+            href="https://github.com/wenguangzhao/gemini3-demos"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-1.5 hover:text-white/90 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+              />
+            </svg>
+            GitHubリポジトリ
+          </a>
+          <span class="text-white/30">|</span>
+          <span class="text-white/60">GitHub Pages</span>
+        </div>
+        <p class="text-xs text-white/50 mt-3">
+          © 2025 Gemini 3 デモ。すべてのデモはGoogle Gemini
+          3によって生成されました。
+        </p>
+      </footer>
     </div>
-</body>
+  </body>
 </html>
