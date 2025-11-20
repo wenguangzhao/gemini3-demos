@@ -39,6 +39,7 @@
             background-color: rgba(255, 105, 180, 0.5);
             box-shadow: 0 0 10px #ff69b4;
             z-index: 10;
+            transition: transform 0.1s; /* 用于射击时的UI震动 */
         }
 
         /* HUD 信息 */
@@ -196,13 +197,13 @@
         // --- 全局变量 ---
         let camera, scene, renderer, controls;
         let raycaster;
-
+        
         // 游戏状态
         let isGameActive = false;
         let lastTime = performance.now();
         let score = 0;
         let health = 100;
-
+        
         // 移动相关
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
@@ -219,7 +220,7 @@
 
         // 可爱配色方案
         const COLORS = [0xff9ff3, 0xfeca57, 0xff6b6b, 0x48dbfb, 0x1dd1a1];
-
+        
         // 音频上下文
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContext();
@@ -230,6 +231,7 @@
         const menuEl = document.getElementById('menu');
         const gameOverEl = document.getElementById('game-over');
         const finalScoreEl = document.getElementById('final-score');
+        const crosshairEl = document.getElementById('crosshair');
 
         // --- 音效系统 (合成器) ---
         function playSound(type) {
@@ -283,7 +285,7 @@
             ctx.arc(40, 50, 15, 0, Math.PI * 2); // 左眼
             ctx.arc(88, 50, 15, 0, Math.PI * 2); // 右眼
             ctx.fill();
-
+            
             // 瞳孔
             ctx.fillStyle = 'black';
             ctx.beginPath();
@@ -303,7 +305,7 @@
             ctx.lineWidth = 4;
             ctx.lineCap = 'round';
             ctx.beginPath();
-
+            
             // 随机嘴型
             if (Math.random() > 0.5) {
                 // W 型嘴
@@ -355,9 +357,9 @@
 
             // 地面
             const groundGeo = new THREE.PlaneGeometry(200, 200);
-            const groundMat = new THREE.MeshStandardMaterial({
+            const groundMat = new THREE.MeshStandardMaterial({ 
                 color: 0xffecf2, // 浅粉地面
-                roughness: 0.8
+                roughness: 0.8 
             });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
@@ -378,6 +380,8 @@
 
             // 控制器
             controls = new PointerLockControls(camera, document.body);
+            // ★★★ 修复：现代 Three.js 中直接添加相机到场景，不要添加 controls.getObject()
+            scene.add(camera);
 
             // UI 事件监听
             const startBtn = document.getElementById('start-btn');
@@ -396,7 +400,6 @@
                 menuEl.style.display = 'none';
                 gameOverEl.style.display = 'none';
                 isGameActive = true;
-                // 确保音频上下文已启动
                 if (audioCtx.state === 'suspended') audioCtx.resume();
             });
 
@@ -406,8 +409,6 @@
                 }
                 isGameActive = false;
             });
-
-            scene.add(controls.getObject());
 
             // 键盘事件
             const onKeyDown = function (event) {
@@ -463,15 +464,16 @@
             score = 0;
             health = 100;
             updateUI();
-
-            // 清除实体
+            
             bullets.forEach(b => scene.remove(b.mesh));
             bullets.length = 0;
             enemies.forEach(e => scene.remove(e.mesh));
             enemies.length = 0;
 
             camera.position.set(0, 10, 0);
+            // 重置旋转，确保 Up 向量正确
             camera.rotation.set(0, 0, 0);
+            camera.up.set(0, 1, 0);
             velocity.set(0, 0, 0);
         }
 
@@ -494,7 +496,7 @@
             // 射击方向
             const vector = new THREE.Vector3(0, 0, -1);
             vector.applyQuaternion(camera.quaternion);
-
+            
             // 稍微偏移一点，不至于挡住视线
             bullet.position.addScaledVector(vector, 1.5);
 
@@ -505,11 +507,19 @@
             const velocity = vector.multiplyScalar(speed);
 
             bullets.push({ mesh: bullet, velocity: velocity, life: 2.0 });
-
+            
             playSound('shoot');
+            
+            // ★★★ 修复：移除直接修改 camera.rotation 的代码，改为 UI 震动和轻微的位置位移
+            // 视觉震动
+            crosshairEl.style.transform = "translate(-50%, -50%) scale(1.5)";
+            setTimeout(() => {
+                crosshairEl.style.transform = "translate(-50%, -50%) scale(1)";
+            }, 50);
 
-            // 简单的后坐力
-            camera.rotation.x += 0.02;
+            // 相机位置轻微震动 (不会破坏旋转轴)
+            camera.position.y += 0.2; 
+            // 注意：位置会在下一帧被 velocity 计算覆盖或平滑，所以这只是瞬间效果，比较安全
         }
 
         function spawnEnemy() {
@@ -517,14 +527,14 @@
 
             const color = COLORS[Math.floor(Math.random() * COLORS.length)];
             const geometry = new THREE.BoxGeometry(3, 3, 3);
-
+            
             // 使用 Canvas 生成可爱纹理
             const texture = createKawaiiFaceTexture(color);
             const material = new THREE.MeshLambertMaterial({ map: texture });
-
+            
             const enemy = new THREE.Mesh(geometry, material);
 
-            // 随机位置生成 (距离玩家一定范围外)
+            // 随机位置生成
             const angle = Math.random() * Math.PI * 2;
             const radius = 30 + Math.random() * 30;
             const px = controls.getObject().position.x + Math.cos(angle) * radius;
@@ -532,9 +542,9 @@
 
             enemy.position.set(px, 1.5, pz);
             enemy.castShadow = true;
-
+            
             scene.add(enemy);
-
+            
             // 敌人数据
             enemies.push({
                 mesh: enemy,
@@ -551,8 +561,7 @@
             for (let i = 0; i < particleCount; i++) {
                 const particle = new THREE.Mesh(geometry, material);
                 particle.position.copy(position);
-
-                // 随机爆炸速度
+                
                 const vel = new THREE.Vector3(
                     (Math.random() - 0.5) * 10,
                     (Math.random() - 0.5) * 10 + 5,
@@ -591,7 +600,7 @@
 
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize(); // 保证对角线移动速度一致
+                direction.normalize(); 
 
                 if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
                 if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
@@ -607,39 +616,39 @@
                     canJump = true;
                 }
 
+                // ★★★ 修复：移除了强制修改 camera.rotation.z 的代码
+                // PointerLockControls 会自动维护正确的 Up 向量，只要我们不手动干扰它
+
                 // 2. 子弹更新
                 for (let i = bullets.length - 1; i >= 0; i--) {
                     const b = bullets[i];
                     b.life -= delta;
-
+                    
                     // 移动
                     b.mesh.position.addScaledVector(b.velocity, delta);
 
-                    // 检测与地面的碰撞
                     if (b.mesh.position.y < 0 || b.life <= 0) {
                         scene.remove(b.mesh);
                         bullets.splice(i, 1);
                         continue;
                     }
 
-                    // 检测与敌人的碰撞 (简单的距离检测)
                     for (let j = enemies.length - 1; j >= 0; j--) {
                         const e = enemies[j];
                         const dist = b.mesh.position.distanceTo(e.mesh.position);
                         if (dist < 2.5) {
-                            // 命中！
-                            createExplosion(e.mesh.position, 0xffffff); // 简单白色爆炸
+                            createExplosion(e.mesh.position, 0xffffff); 
                             playSound('hit');
-
+                            
                             scene.remove(e.mesh);
                             scene.remove(b.mesh);
-
+                            
                             enemies.splice(j, 1);
-                            bullets.splice(i, 1); // 子弹销毁
-
+                            bullets.splice(i, 1); 
+                            
                             score += 10;
                             updateUI();
-                            break; // 子弹没了，不需要检测其他敌人
+                            break; 
                         }
                     }
                 }
@@ -648,33 +657,28 @@
                 const playerPos = controls.getObject().position;
                 for (let i = enemies.length - 1; i >= 0; i--) {
                     const e = enemies[i];
-
-                    // 朝向玩家
+                    
                     e.mesh.lookAt(playerPos.x, 1.5, playerPos.z);
-
-                    // 移动
+                    
                     const dir = new THREE.Vector3().subVectors(playerPos, e.mesh.position).normalize();
-                    dir.y = 0; // 只在平面移动
+                    dir.y = 0; 
                     e.mesh.position.addScaledVector(dir, e.speed * delta);
 
-                    // 简单的“可爱”跳跃动画
                     e.mesh.position.y = 1.5 + Math.abs(Math.sin(time * 0.005 + e.wobbleOffset)) * 1;
 
-                    // 玩家伤害检测
-                    // 修正：只计算水平距离 (XZ平面)，忽略高度差，因为玩家视角较高(Y=10)，敌人较矮(Y=1.5)
+                    // ★★★ 修复：保持高度忽略的碰撞检测
                     const dx = e.mesh.position.x - playerPos.x;
                     const dz = e.mesh.position.z - playerPos.z;
                     const distToPlayer = Math.sqrt(dx * dx + dz * dz);
 
-                    if (distToPlayer < 3) { // 稍微增加判定范围
+                    if (distToPlayer < 3) { 
                         health -= 20;
                         updateUI();
-                        createExplosion(e.mesh.position, 0xff0000); // 红色爆炸
+                        createExplosion(e.mesh.position, 0xff0000); 
                         scene.remove(e.mesh);
                         enemies.splice(i, 1);
                         playSound('hit');
 
-                        // 击退效果
                         const pushDir = dir.negate().multiplyScalar(20);
                         velocity.add(pushDir);
 
@@ -688,11 +692,11 @@
                 for (let i = particles.length - 1; i >= 0; i--) {
                     const p = particles[i];
                     p.life -= delta;
-                    p.velocity.y -= 9.8 * delta; // 粒子重力
+                    p.velocity.y -= 9.8 * delta; 
                     p.mesh.position.addScaledVector(p.velocity, delta);
                     p.mesh.rotation.x += delta;
                     p.mesh.rotation.y += delta;
-
+                    
                     if (p.life <= 0 || p.mesh.position.y < 0) {
                         scene.remove(p.mesh);
                         particles.splice(i, 1);
@@ -700,7 +704,7 @@
                 }
 
                 // 5. 自动生成敌人
-                if (Math.random() < 0.01 + (score * 0.0001)) { // 随分数提高生成率
+                if (Math.random() < 0.01 + (score * 0.0001)) { 
                     if (enemies.length < 10 + (score / 100)) {
                         spawnEnemy();
                     }
