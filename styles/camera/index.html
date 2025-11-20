@@ -379,8 +379,14 @@
             });
 
             anim.onfinish = () => {
+                // Temporarily disable transition to prevent flicker on mobile
+                div.style.transition = 'none';
                 div.style.transform = 'translateY(-80%)';
                 anim.cancel();
+                // Re-enable transition in next frame for hover effect
+                requestAnimationFrame(() => {
+                    div.style.transition = '';
+                });
             };
 
             div.addEventListener('mousedown', startDrag);
