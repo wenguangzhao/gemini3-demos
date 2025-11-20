@@ -1,503 +1,594 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Instant Camera App</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden; /* Prevent scrolling when dragging */
-            touch-action: none;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        overflow: hidden; /* Prevent scrolling when dragging */
+        touch-action: none;
+        user-select: none; /* 全局禁止文字选择 */
+        -webkit-user-select: none;
+      }
 
-        /* Custom Font for the Polaroid Text */
-        .handwritten {
-            font-family: 'Permanent Marker', cursive;
-        }
+      /* Custom Font for the Polaroid Text */
+      .handwritten {
+        font-family: "Permanent Marker", cursive;
+      }
 
-        /* Flash Animation */
-        @keyframes flash-animation {
-            0% { opacity: 1; }
-            100% { opacity: 0; }
+      /* Flash Animation */
+      @keyframes flash-animation {
+        0% {
+          opacity: 1;
         }
-        .flash-active {
-            animation: flash-animation 0.8s ease-out forwards;
+        100% {
+          opacity: 0;
         }
+      }
+      .flash-active {
+        animation: flash-animation 0.8s ease-out forwards;
+      }
 
-        /* Photo Ejection Animation - Modified to stop halfway */
-        @keyframes eject-photo-partial {
-            0% { transform: translateY(100%); }
-            100% { transform: translateY(-60%); } /* Stops sticking out */
+      /* Photo Ejection Animation - Stops halfway */
+      @keyframes eject-photo-partial {
+        0% {
+          transform: translateY(100%);
         }
-        .ejecting {
-            animation: eject-photo-partial 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        100% {
+          transform: translateY(-60%);
         }
+      }
+      .ejecting {
+        animation: eject-photo-partial 0.8s cubic-bezier(0.25, 1, 0.5, 1)
+          forwards;
+      }
 
-        /* Dragging styles */
-        .draggable {
-            cursor: grab;
-            position: absolute;
-            transition: box-shadow 0.2s, transform 0.1s;
-            user-select: none;
-            /* Smooth movement when not dragging */
-            touch-action: none;
+      /* Developing Effect (显影效果) - Modified to 2s */
+      @keyframes develop-image {
+        0% {
+          filter: blur(8px) grayscale(1) brightness(1.8) contrast(0.8);
+          opacity: 0.9;
         }
-        .draggable.is-dragging {
-            cursor: grabbing;
-            z-index: 1000 !important;
-            transform: scale(1.05) rotate(0deg) !important; /* Straighten when dragging */
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transition: none; /* Remove transition for instant follow */
+        50% {
+          filter: blur(4px) grayscale(0.6) brightness(1.2);
         }
+        100% {
+          filter: blur(0) grayscale(0) brightness(1) contrast(1);
+          opacity: 1;
+        }
+      }
+      /* 只有带有 developing 类的元素才会执行显影动画 */
+      .developing img {
+        animation: develop-image 2s ease-in-out forwards; /* Modified duration to 2s */
+      }
 
-        .selected-photo {
-            outline: 4px solid #3b82f6; /* Blue outline for selection */
-            z-index: 50;
-        }
+      /* Dragging & Selection Styles */
+      .draggable {
+        cursor: grab;
+        position: absolute;
+        /* 阴影和变换的过渡动画 */
+        transition: box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+          transform 0.3s ease;
+        touch-action: none;
+        will-change: transform, box-shadow;
+      }
 
-        /* Photo style inside printer */
-        .in-printer {
-            z-index: 0; /* Behind camera body */
-            cursor: grab;
-        }
-        .in-printer:hover {
-            transform: translateY(-65%) !important; /* Slight nudge on hover */
-        }
+      /* 拖拽时的状态 */
+      .draggable.is-dragging {
+        cursor: grabbing;
+        z-index: 1000 !important;
+        transform: scale(1.05) rotate(0deg) !important;
+        /* 拖拽时阴影更深 */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+        transition: none; /* 拖拽时移除位置过渡，保证跟随手势 */
+      }
+
+      /* 选中状态：大阴影 + 轻微上浮 */
+      .selected-photo {
+        z-index: 50;
+        transform: scale(1.02); /* 稍微变大 */
+        /* 更大、更柔和的阴影 */
+        box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.4);
+      }
+
+      /* Photo style inside printer */
+      .in-printer {
+        z-index: 0;
+        cursor: grab;
+      }
+      .in-printer:hover {
+        transform: translateY(-65%) !important;
+      }
     </style>
-</head>
-<body class="bg-gray-100 h-screen w-screen relative flex flex-col md:flex-row overflow-hidden">
-
+  </head>
+  <body
+    class="bg-gray-100 h-screen w-screen relative flex flex-col md:flex-row overflow-hidden"
+  >
     <!-- Flash Overlay -->
-    <div id="flash-overlay" class="fixed inset-0 bg-white pointer-events-none opacity-0 z-[100]"></div>
+    <div
+      id="flash-overlay"
+      class="fixed inset-0 bg-white pointer-events-none opacity-0 z-[100]"
+    ></div>
 
     <!-- Header / Controls -->
     <div class="absolute top-4 right-4 z-50 flex gap-2">
-        <button id="download-btn" class="bg-white border-2 border-black px-6 py-2 rounded-full font-bold hover:bg-gray-100 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-            DOWNLOAD
-        </button>
+      <button
+        id="download-btn"
+        class="bg-white border-2 border-black px-6 py-2 rounded-full font-bold hover:bg-gray-100 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none"
+      >
+        DOWNLOAD
+      </button>
     </div>
 
     <!-- Left Side: Camera Area -->
-    <div class="w-full h-1/2 md:w-1/2 md:h-full flex items-center justify-center relative p-4" id="camera-zone">
-
-        <!-- Camera Container -->
-        <div class="relative w-[320px] md:w-[450px] transition-all duration-500" id="camera-container">
-
-            <!-- The Ejecting Photo Slot (Behind Camera) -->
-            <!-- Important: overflow-visible so we can see it slide up -->
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[200px] z-0" id="printer-slot">
-                <!-- Photos will be appended here -->
-            </div>
-
-            <!-- Camera Image -->
-            <img
-                src="https://wgzhao.me/images/img/X5CczwV7I?w=800&fm=png"
-                alt="Instant Camera"
-                class="w-full relative z-20 pointer-events-none drop-shadow-2xl"
-                id="camera-img"
-            >
-
-            <!-- Webcam Feed (Lens) -->
-            <div id="lens-wrapper" class="absolute z-30 overflow-hidden rounded-full bg-[#111] border-4 border-gray-800/50 shadow-inner">
-                <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover transform scale-x-[-1]"></video>
-            </div>
-
-            <!-- Shutter Button Area -->
-            <div id="shutter-btn" class="absolute z-40 rounded-full cursor-pointer hover:bg-white/10 active:bg-white/20 transition" title="Take Photo"></div>
-
-            <!-- Indicator Light -->
-            <div id="status-light" class="absolute top-[18%] right-[28%] w-3 h-3 rounded-full bg-red-500 z-30 shadow-[0_0_10px_red] transition-colors duration-300"></div>
+    <div
+      class="w-full h-1/2 md:w-1/2 md:h-full flex items-center justify-center relative p-4"
+      id="camera-zone"
+    >
+      <!-- Camera Container -->
+      <div
+        class="relative w-[320px] md:w-[450px] transition-all duration-500"
+        id="camera-container"
+      >
+        <!-- The Ejecting Photo Slot (Behind Camera) -->
+        <div
+          class="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[200px] z-0"
+          id="printer-slot"
+        >
+          <!-- Photos will be appended here -->
         </div>
+
+        <!-- Camera Image -->
+        <img
+          src="https://wgzhao.me/images/img/X5CczwV7I?w=800&fm=png"
+          alt="Instant Camera"
+          class="w-full relative z-20 pointer-events-none drop-shadow-2xl select-none"
+          id="camera-img"
+        />
+
+        <!-- Webcam Feed (Lens) -->
+        <div
+          id="lens-wrapper"
+          class="absolute z-30 overflow-hidden rounded-full bg-[#111] border-4 border-gray-800/50 shadow-inner"
+        >
+          <video
+            id="webcam"
+            autoplay
+            playsinline
+            muted
+            class="w-full h-full object-cover transform scale-x-[-1]"
+          ></video>
+        </div>
+
+        <!-- Shutter Button Area -->
+        <div
+          id="shutter-btn"
+          class="absolute z-40 rounded-full cursor-pointer hover:bg-white/10 active:bg-white/20 transition"
+          title="Take Photo"
+        ></div>
+
+        <!-- Indicator Light -->
+        <div
+          id="status-light"
+          class="absolute top-[18%] right-[28%] w-3 h-3 rounded-full bg-red-500 z-30 shadow-[0_0_10px_red] transition-colors duration-300"
+        ></div>
+      </div>
     </div>
 
     <!-- Right Side: Photo Gallery / Drop Zone -->
-    <div class="w-full h-1/2 md:w-1/2 md:h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] relative overflow-hidden" id="gallery-zone">
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center text-gray-300 font-bold text-4xl uppercase tracking-widest select-none opacity-50">
-            Drop Here
-        </div>
-        <!-- Photos will be moved here -->
+    <div
+      class="w-full h-1/2 md:w-1/2 md:h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] relative overflow-hidden"
+      id="gallery-zone"
+    >
+      <div
+        class="absolute inset-0 pointer-events-none flex items-center justify-center text-gray-300 font-bold text-4xl uppercase tracking-widest select-none opacity-50"
+      >
+        Drop Here
+      </div>
     </div>
 
     <!-- Hidden Canvas for rendering download image -->
     <canvas id="render-canvas" class="hidden"></canvas>
 
     <script>
-        // --- CONFIGURATION & CALIBRATION ---
-        const CAMERA_CONFIG = {
-            lensTop: 43.5,
-            lensLeft: 39.5,
-            lensSize: 35.5,
-            btnTop: 53,
-            btnLeft: 13,
-            btnSize: 12
+      // --- CONFIGURATION & CALIBRATION ---
+      const CAMERA_CONFIG = {
+        // 镜头位置
+        lensTop: 43.5, // 增大数字 -> 向下移
+        lensLeft: 39.5, // 增大数字 -> 向右移
+        lensSize: 35.5, // 增大数字 -> 镜头变大
+
+        // 快门按钮位置 (粉色按钮区域)
+        btnTop: 53, // 增大数字 -> 向下移
+        btnLeft: 13, // 增大数字 -> 向右移
+        btnSize: 12, // 按钮大小
+      };
+
+      // --- STATE ---
+      let selectedPhotoId = null;
+      let dragItem = null;
+      let dragOffset = { x: 0, y: 0 };
+      let zIndexCounter = 100;
+      let audioContext = null;
+
+      // --- DOM ELEMENTS ---
+      const video = document.getElementById("webcam");
+      const lensWrapper = document.getElementById("lens-wrapper");
+      const shutterBtn = document.getElementById("shutter-btn");
+      const flashOverlay = document.getElementById("flash-overlay");
+      const printerSlot = document.getElementById("printer-slot");
+      const galleryZone = document.getElementById("gallery-zone");
+      const statusLight = document.getElementById("status-light");
+      const downloadBtn = document.getElementById("download-btn");
+
+      // --- INITIALIZATION ---
+      async function initCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          video.srcObject = stream;
+          statusLight.classList.remove("bg-red-500", "shadow-[0_0_10px_red]");
+          statusLight.classList.add("bg-green-500", "shadow-[0_0_10px_green]");
+        } catch (err) {
+          console.warn(
+            "Camera access denied or not found. Using fallback mode.",
+            err
+          );
+          video.style.display = "none";
+          lensWrapper.style.backgroundColor = "#1a1a1a";
+        }
+      }
+
+      function applyCalibration() {
+        lensWrapper.style.top = `${CAMERA_CONFIG.lensTop}%`;
+        lensWrapper.style.left = `${CAMERA_CONFIG.lensLeft}%`;
+        lensWrapper.style.width = `${CAMERA_CONFIG.lensSize}%`;
+        lensWrapper.style.height = `${CAMERA_CONFIG.lensSize}%`;
+        lensWrapper.style.aspectRatio = "1/1";
+
+        shutterBtn.style.top = `${CAMERA_CONFIG.btnTop}%`;
+        shutterBtn.style.left = `${CAMERA_CONFIG.btnLeft}%`;
+        shutterBtn.style.width = `${CAMERA_CONFIG.btnSize}%`;
+        shutterBtn.style.aspectRatio = "1/1";
+      }
+
+      // --- SOUND EFFECT ---
+      function playShutterSound() {
+        try {
+          if (!audioContext) {
+            const AudioContext =
+              window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) audioContext = new AudioContext();
+          }
+          if (audioContext && audioContext.state === "suspended") {
+            audioContext.resume();
+          }
+          if (!audioContext) return;
+
+          const t = audioContext.currentTime;
+
+          // Noise (Shhh)
+          const bufferSize = audioContext.sampleRate * 0.1;
+          const buffer = audioContext.createBuffer(
+            1,
+            bufferSize,
+            audioContext.sampleRate
+          );
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+          const noise = audioContext.createBufferSource();
+          noise.buffer = buffer;
+          const noiseGain = audioContext.createGain();
+          noiseGain.gain.setValueAtTime(0.5, t);
+          noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+          noise.connect(noiseGain);
+          noiseGain.connect(audioContext.destination);
+          noise.start();
+
+          // Click (High pitch)
+          const osc = audioContext.createOscillator();
+          const oscGain = audioContext.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(800, t);
+          osc.frequency.exponentialRampToValueAtTime(100, t + 0.1);
+          oscGain.gain.setValueAtTime(0.3, t);
+          oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+          osc.connect(oscGain);
+          oscGain.connect(audioContext.destination);
+          osc.start();
+          osc.stop(t + 0.1);
+        } catch (e) {
+          console.error("Audio play failed", e);
+        }
+      }
+
+      // --- PHOTO CAPTURE ---
+      shutterBtn.addEventListener("click", takePhoto);
+
+      function takePhoto() {
+        playShutterSound();
+
+        // Flash
+        flashOverlay.classList.remove("flash-active");
+        void flashOverlay.offsetWidth;
+        flashOverlay.classList.add("flash-active");
+
+        // Capture logic
+        const canvas = document.createElement("canvas");
+        const size = 600;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+
+        const isCameraActive =
+          video.style.display !== "none" &&
+          video.srcObject &&
+          video.srcObject.active;
+
+        if (isCameraActive) {
+          try {
+            const vidSize = Math.min(video.videoWidth, video.videoHeight);
+            if (vidSize > 0) {
+              const sx = (video.videoWidth - vidSize) / 2;
+              const sy = (video.videoHeight - vidSize) / 2;
+              ctx.translate(size, 0);
+              ctx.scale(-1, 1);
+              ctx.drawImage(video, sx, sy, vidSize, vidSize, 0, 0, size, size);
+            } else {
+              throw new Error("Video dimensions invalid");
+            }
+          } catch (e) {
+            drawFallbackImage(ctx, size);
+          }
+        } else {
+          drawFallbackImage(ctx, size);
+        }
+
+        const imgDataUrl = canvas.toDataURL("image/png");
+        const timestamp = new Date().toLocaleString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+          hour12: true,
+        });
+
+        createPolaroid(imgDataUrl, timestamp);
+      }
+
+      function drawFallbackImage(ctx, size) {
+        ctx.fillStyle = "#111111";
+        ctx.fillRect(0, 0, size, size);
+        for (let i = 0; i < 80000; i++) {
+          const x = Math.random() * size;
+          const y = Math.random() * size;
+          const brightness = Math.random() * 20 + 10;
+          ctx.fillStyle = `rgba(${brightness}, ${brightness}, ${brightness}, 0.1)`;
+          ctx.fillRect(x, y, 2, 2);
+        }
+        const gradient = ctx.createRadialGradient(
+          size / 2,
+          size / 2,
+          size * 0.4,
+          size / 2,
+          size / 2,
+          size
+        );
+        gradient.addColorStop(0, "transparent");
+        gradient.addColorStop(1, "rgba(0,0,0,0.6)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+      }
+
+      function createPolaroid(imgUrl, dateText) {
+        const id = Date.now();
+
+        const polaroid = document.createElement("div");
+        // Added 'developing' class which triggers the CSS animation
+        polaroid.className =
+          "absolute bg-[#fdfdfd] shadow-lg p-3 flex flex-col items-center justify-start in-printer developing";
+        polaroid.style.width = "160px";
+        polaroid.style.height = "200px";
+        polaroid.style.paddingBottom = "30px";
+        polaroid.id = `photo-${id}`;
+
+        const img = document.createElement("img");
+        img.src = imgUrl;
+        img.className =
+          "w-full aspect-square object-cover bg-gray-900 pointer-events-none select-none";
+        img.draggable = false;
+
+        const label = document.createElement("div");
+        label.className =
+          "handwritten text-gray-600 text-xs mt-2 text-center w-full leading-tight pointer-events-none select-none";
+        label.innerText = dateText;
+
+        polaroid.appendChild(img);
+        polaroid.appendChild(label);
+
+        // Append to printer slot
+        printerSlot.appendChild(polaroid);
+
+        // Animate Ejection
+        setTimeout(() => {
+          polaroid.classList.add("ejecting");
+        }, 200);
+
+        // Interaction
+        polaroid.addEventListener("mousedown", startDrag);
+        polaroid.addEventListener("touchstart", startDrag, { passive: false });
+        polaroid.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectPhoto(polaroid);
+        });
+      }
+
+      // --- DRAG & DROP ---
+      function startDrag(e) {
+        if (e.type === "touchstart") e.preventDefault();
+
+        dragItem = e.currentTarget;
+
+        if (!audioContext) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) audioContext = new AudioContext();
+        }
+
+        dragItem.classList.add("is-dragging");
+        zIndexCounter++;
+        dragItem.style.zIndex = zIndexCounter;
+
+        // Auto select when dragging starts
+        selectPhoto(dragItem);
+
+        const rect = dragItem.getBoundingClientRect();
+        const clientX =
+          e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+        const clientY =
+          e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+
+        dragOffset.x = clientX - rect.left;
+        dragOffset.y = clientY - rect.top;
+
+        // Move to body if needed
+        if (dragItem.parentNode !== document.body) {
+          dragItem.style.left = `${rect.left}px`;
+          dragItem.style.top = `${rect.top}px`;
+          dragItem.style.transform = "none";
+          dragItem.classList.remove("ejecting", "in-printer");
+
+          // CRITICAL FIX: Remove 'developing' class when moving to body to prevent animation restart
+          dragItem.classList.remove("developing");
+
+          document.body.appendChild(dragItem);
+        }
+
+        document.addEventListener("mousemove", onDrag);
+        document.addEventListener("mouseup", stopDrag);
+        document.addEventListener("touchmove", onDrag, { passive: false });
+        document.addEventListener("touchend", stopDrag);
+      }
+
+      function onDrag(e) {
+        if (!dragItem) return;
+        if (e.type === "touchmove") e.preventDefault();
+
+        const clientX =
+          e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+        const clientY =
+          e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+
+        const newX = clientX - dragOffset.x;
+        const newY = clientY - dragOffset.y;
+
+        dragItem.style.left = `${newX}px`;
+        dragItem.style.top = `${newY}px`;
+      }
+
+      function stopDrag(e) {
+        if (!dragItem) return;
+
+        dragItem.classList.remove("is-dragging");
+
+        // Rotation effect on drop
+        const galleryRect = galleryZone.getBoundingClientRect();
+        const itemRect = dragItem.getBoundingClientRect();
+        const itemCenter = {
+          x: itemRect.left + itemRect.width / 2,
+          y: itemRect.top + itemRect.height / 2,
         };
 
-        // --- STATE ---
-        let selectedPhotoId = null;
-        let dragItem = null;
-        let dragOffset = { x: 0, y: 0 };
-        let zIndexCounter = 100;
-        let audioContext = null;
-
-        // --- DOM ELEMENTS ---
-        const video = document.getElementById('webcam');
-        const lensWrapper = document.getElementById('lens-wrapper');
-        const shutterBtn = document.getElementById('shutter-btn');
-        const flashOverlay = document.getElementById('flash-overlay');
-        const printerSlot = document.getElementById('printer-slot');
-        const galleryZone = document.getElementById('gallery-zone');
-        const statusLight = document.getElementById('status-light');
-        const downloadBtn = document.getElementById('download-btn');
-
-        // --- INITIALIZATION ---
-        async function initCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                statusLight.classList.remove('bg-red-500', 'shadow-[0_0_10px_red]');
-                statusLight.classList.add('bg-green-500', 'shadow-[0_0_10px_green]');
-            } catch (err) {
-                console.warn("Camera access denied or not found. Using fallback mode.", err);
-                video.style.display = 'none';
-                lensWrapper.style.backgroundColor = '#1a1a1a';
-            }
+        // Check bounds (simple check)
+        if (itemCenter.x > galleryRect.left) {
+          // Apply a random resting angle
+          // Don't snap rotation if it already has one, unless it was 0 from dragging
+          const randomRot = Math.random() * 8 - 4;
+          dragItem.style.transform = `rotate(${randomRot}deg)`;
         }
 
-        function applyCalibration() {
-            lensWrapper.style.top = `${CAMERA_CONFIG.lensTop}%`;
-            lensWrapper.style.left = `${CAMERA_CONFIG.lensLeft}%`;
-            lensWrapper.style.width = `${CAMERA_CONFIG.lensSize}%`;
-            lensWrapper.style.height = `${CAMERA_CONFIG.lensSize}%`;
-            lensWrapper.style.aspectRatio = '1/1';
+        dragItem = null;
+        document.removeEventListener("mousemove", onDrag);
+        document.removeEventListener("mouseup", stopDrag);
+        document.removeEventListener("touchmove", onDrag);
+        document.removeEventListener("touchend", stopDrag);
+      }
 
-            shutterBtn.style.top = `${CAMERA_CONFIG.btnTop}%`;
-            shutterBtn.style.left = `${CAMERA_CONFIG.btnLeft}%`;
-            shutterBtn.style.width = `${CAMERA_CONFIG.btnSize}%`;
-            shutterBtn.style.aspectRatio = '1/1';
-        }
-
-        // --- SOUND EFFECT ---
-        function playShutterSound() {
-            try {
-                if (!audioContext) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContext) audioContext = new AudioContext();
-                }
-
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-
-                if (!audioContext) return;
-
-                const t = audioContext.currentTime;
-
-                // Create Noise Buffer (Shhh sound)
-                const bufferSize = audioContext.sampleRate * 0.1; // 0.1 seconds
-                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-
-                const noise = audioContext.createBufferSource();
-                noise.buffer = buffer;
-                const noiseGain = audioContext.createGain();
-                noiseGain.gain.setValueAtTime(0.5, t);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-
-                noise.connect(noiseGain);
-                noiseGain.connect(audioContext.destination);
-                noise.start();
-
-                // Create Click (High pitch decay)
-                const osc = audioContext.createOscillator();
-                const oscGain = audioContext.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(800, t);
-                osc.frequency.exponentialRampToValueAtTime(100, t + 0.1);
-                oscGain.gain.setValueAtTime(0.3, t);
-                oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-
-                osc.connect(oscGain);
-                oscGain.connect(audioContext.destination);
-                osc.start();
-                osc.stop(t + 0.1);
-
-            } catch (e) {
-                console.error("Audio play failed", e);
-            }
-        }
-
-        // --- PHOTO CAPTURE ---
-        shutterBtn.addEventListener('click', takePhoto);
-
-        function takePhoto() {
-            // Play Sound
-            playShutterSound();
-
-            // Flash
-            flashOverlay.classList.remove('flash-active');
-            void flashOverlay.offsetWidth;
-            flashOverlay.classList.add('flash-active');
-
-            // Capture
-            const canvas = document.createElement('canvas');
-            const size = 600;
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-
-            const isCameraActive = video.style.display !== 'none' && video.srcObject && video.srcObject.active;
-
-            if (isCameraActive) {
-                try {
-                    const vidSize = Math.min(video.videoWidth, video.videoHeight);
-                    if (vidSize > 0) {
-                        const sx = (video.videoWidth - vidSize) / 2;
-                        const sy = (video.videoHeight - vidSize) / 2;
-                        ctx.translate(size, 0);
-                        ctx.scale(-1, 1);
-                        ctx.drawImage(video, sx, sy, vidSize, vidSize, 0, 0, size, size);
-                    } else {
-                        throw new Error("Video dimensions invalid");
-                    }
-                } catch (e) {
-                    drawFallbackImage(ctx, size);
-                }
-            } else {
-                drawFallbackImage(ctx, size);
-            }
-
-            const imgDataUrl = canvas.toDataURL('image/png');
-            const timestamp = new Date().toLocaleString('en-US', {
-                year: 'numeric', month: 'short', day: 'numeric',
-                hour: 'numeric', minute: 'numeric', hour12: true
-            });
-
-            createPolaroid(imgDataUrl, timestamp);
-        }
-
-        function drawFallbackImage(ctx, size) {
-            ctx.fillStyle = '#111111';
-            ctx.fillRect(0, 0, size, size);
-            for (let i = 0; i < 80000; i++) {
-                const x = Math.random() * size;
-                const y = Math.random() * size;
-                const brightness = Math.random() * 20 + 10;
-                ctx.fillStyle = `rgba(${brightness}, ${brightness}, ${brightness}, 0.1)`;
-                ctx.fillRect(x, y, 2, 2);
-            }
-            const gradient = ctx.createRadialGradient(size/2, size/2, size * 0.4, size/2, size/2, size);
-            gradient.addColorStop(0, 'transparent');
-            gradient.addColorStop(1, 'rgba(0,0,0,0.6)');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, size, size);
-        }
-
-        function createPolaroid(imgUrl, dateText) {
-            const id = Date.now();
-
-            const polaroid = document.createElement('div');
-            // Updated classes for manual interaction
-            polaroid.className = 'absolute bg-white shadow-lg p-3 flex flex-col items-center justify-start in-printer';
-            polaroid.style.width = '160px';
-            polaroid.style.height = '200px';
-            polaroid.style.paddingBottom = '30px';
-            polaroid.id = `photo-${id}`;
-
-            const img = document.createElement('img');
-            img.src = imgUrl;
-            img.className = 'w-full aspect-square object-cover bg-gray-900 pointer-events-none';
-            img.draggable = false;
-
-            const label = document.createElement('div');
-            label.className = 'handwritten text-gray-600 text-xs mt-2 text-center w-full leading-tight pointer-events-none';
-            label.innerText = dateText;
-
-            polaroid.appendChild(img);
-            polaroid.appendChild(label);
-
-            // Append to printer slot (behind camera)
-            printerSlot.appendChild(polaroid);
-
-            // Animate Ejection (Partially)
-            setTimeout(() => {
-                polaroid.classList.add('ejecting');
-            }, 200);
-
-            // Attach interaction events immediately
-            polaroid.addEventListener('mousedown', startDrag);
-            polaroid.addEventListener('touchstart', startDrag, {passive: false});
-            polaroid.addEventListener('click', (e) => {
-                e.stopPropagation();
-                selectPhoto(polaroid);
-            });
-        }
-
-        // --- DRAG & DROP LOGIC ---
-        function startDrag(e) {
-            if (e.type === 'touchstart') e.preventDefault();
-
-            dragItem = e.currentTarget;
-
-            // Initialize Audio Context on first interaction if needed
-            if (!audioContext) {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (AudioContext) audioContext = new AudioContext();
-            }
-
-            // Visual Feedback
-            dragItem.classList.add('is-dragging');
-            zIndexCounter++;
-            dragItem.style.zIndex = zIndexCounter;
-            selectPhoto(dragItem);
-
-            // --- Coordinate Logic ---
-            // We need to calculate where the mouse is relative to the element
-            // And where the element is relative to the PAGE (client)
-            const rect = dragItem.getBoundingClientRect();
-
-            // 1. Determine offset inside the element
-            const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-            const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-
-            dragOffset.x = clientX - rect.left;
-            dragOffset.y = clientY - rect.top;
-
-            // 2. "Pop" the element to body context so it can be dragged anywhere freely
-            // If it's inside printer-slot or gallery, we move it to body
-            // But we must maintain its visual position exactly where it is.
-            if (dragItem.parentNode !== document.body) {
-                dragItem.style.left = `${rect.left}px`;
-                dragItem.style.top = `${rect.top}px`;
-                dragItem.style.transform = 'none'; // Remove any rotation/scale for drag reset
-                dragItem.classList.remove('ejecting', 'in-printer'); // Remove printer specific classes
-                document.body.appendChild(dragItem);
-            }
-
-            // Bind Move/Up
-            document.addEventListener('mousemove', onDrag);
-            document.addEventListener('mouseup', stopDrag);
-            document.addEventListener('touchmove', onDrag, {passive: false});
-            document.addEventListener('touchend', stopDrag);
-        }
-
-        function onDrag(e) {
-            if (!dragItem) return;
-            if (e.type === 'touchmove') e.preventDefault();
-
-            const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-            const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-
-            // Move relative to viewport (since we moved it to body)
-            const newX = clientX - dragOffset.x;
-            const newY = clientY - dragOffset.y;
-
-            dragItem.style.left = `${newX}px`;
-            dragItem.style.top = `${newY}px`;
-        }
-
-        function stopDrag(e) {
-            if (!dragItem) return;
-
-            dragItem.classList.remove('is-dragging');
-
-            // Check drop target
-            // If dropped inside Gallery Zone, snap it to gallery logic (optional, mainly for clean DOM)
-            // Or just leave it on body (easier, but let's check bounds)
-
-            const galleryRect = galleryZone.getBoundingClientRect();
-            const itemRect = dragItem.getBoundingClientRect();
-            const itemCenter = {
-                x: itemRect.left + itemRect.width / 2,
-                y: itemRect.top + itemRect.height / 2
-            };
-
-            // Check if center of photo is in gallery
-            const inGallery =
-                itemCenter.x >= galleryRect.left &&
-                itemCenter.x <= galleryRect.right &&
-                itemCenter.y >= galleryRect.top &&
-                itemCenter.y <= galleryRect.bottom;
-
-            if (inGallery) {
-                // Add a random rotation for natural look if it was just dropped
-                const randomRot = (Math.random() * 10) - 5;
-                dragItem.style.transform = `rotate(${randomRot}deg)`;
-            }
-
-            dragItem = null;
-            document.removeEventListener('mousemove', onDrag);
-            document.removeEventListener('mouseup', stopDrag);
-            document.removeEventListener('touchmove', onDrag);
-            document.removeEventListener('touchend', stopDrag);
-        }
-
-        // --- SELECTION & DOWNLOAD ---
-        function selectPhoto(el) {
-            document.querySelectorAll('.selected-photo').forEach(p => p.classList.remove('selected-photo'));
-            el.classList.add('selected-photo');
-            selectedPhotoId = el.id;
-            downloadBtn.disabled = false;
-        }
-
-        galleryZone.addEventListener('mousedown', (e) => {
-            if(e.target === galleryZone) {
-                document.querySelectorAll('.selected-photo').forEach(p => p.classList.remove('selected-photo'));
-                selectedPhotoId = null;
-                downloadBtn.disabled = true;
-            }
+      // --- SELECTION ---
+      function selectPhoto(el) {
+        document.querySelectorAll(".selected-photo").forEach((p) => {
+          p.classList.remove("selected-photo");
         });
 
-        downloadBtn.addEventListener('click', () => {
-            if (!selectedPhotoId) return;
-            const el = document.getElementById(selectedPhotoId);
-            if (!el) return;
-            downloadPolaroid(el);
-        });
+        el.classList.add("selected-photo");
+        selectedPhotoId = el.id;
+        downloadBtn.disabled = false;
+      }
 
-        function downloadPolaroid(element) {
-            const canvas = document.getElementById('render-canvas');
-            const ctx = canvas.getContext('2d');
-            const img = element.querySelector('img');
-            const text = element.innerText;
-
-            const cardWidth = 600;
-            const cardHeight = 720;
-            const padding = 40;
-
-            canvas.width = cardWidth;
-            canvas.height = cardHeight;
-
-            // Background
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, cardWidth, cardHeight); // Removed shadow for clean export
-
-            // Image
-            const imgSize = cardWidth - 40 - (padding * 2);
-            ctx.drawImage(img, 20 + padding, 20 + padding, imgSize, imgSize);
-
-            // Text
-            ctx.fillStyle = '#333333';
-            ctx.font = '40px "Permanent Marker", cursive';
-            ctx.textAlign = 'center';
-            ctx.fillText(text, cardWidth / 2, cardHeight - 60);
-
-            const link = document.createElement('a');
-            link.download = `polaroid-${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+      galleryZone.addEventListener("mousedown", (e) => {
+        if (e.target === galleryZone) {
+          document
+            .querySelectorAll(".selected-photo")
+            .forEach((p) => p.classList.remove("selected-photo"));
+          selectedPhotoId = null;
+          downloadBtn.disabled = true;
         }
+      });
 
-        // Start
-        applyCalibration();
-        initCamera();
-        window.addEventListener('resize', applyCalibration);
+      // --- DOWNLOAD ---
+      downloadBtn.addEventListener("click", () => {
+        if (!selectedPhotoId) return;
+        const el = document.getElementById(selectedPhotoId);
+        if (!el) return;
+        downloadPolaroid(el);
+      });
 
+      function downloadPolaroid(element) {
+        const canvas = document.getElementById("render-canvas");
+        const ctx = canvas.getContext("2d");
+        const img = element.querySelector("img");
+        const text = element.innerText;
+
+        const cardWidth = 600;
+        const cardHeight = 720;
+        const padding = 40;
+
+        canvas.width = cardWidth;
+        canvas.height = cardHeight;
+
+        // Background (matching the slight off-white)
+        ctx.fillStyle = "#fdfdfd";
+        ctx.fillRect(0, 0, cardWidth, cardHeight);
+
+        // Image
+        const imgSize = cardWidth - 40 - padding * 2;
+        ctx.drawImage(img, 20 + padding, 20 + padding, imgSize, imgSize);
+
+        // Text
+        ctx.fillStyle = "#333333";
+        ctx.font = '40px "Permanent Marker", cursive';
+        ctx.textAlign = "center";
+        ctx.fillText(text, cardWidth / 2, cardHeight - 60);
+
+        const link = document.createElement("a");
+        link.download = `polaroid-${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+
+      // Start
+      applyCalibration();
+      initCamera();
+      window.addEventListener("resize", applyCalibration);
     </script>
-</body>
+  </body>
 </html>
