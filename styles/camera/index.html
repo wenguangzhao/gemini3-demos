@@ -73,21 +73,23 @@
       .draggable {
         cursor: grab;
         position: absolute;
-        /* 阴影和变换的过渡动画 */
+        /* 关键修改：确保 box-shadow 和 transform 始终有过渡动画，除非被 .is-dragging 覆盖 */
         transition: box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
           transform 0.3s ease;
         touch-action: none;
         will-change: transform, box-shadow;
       }
 
-      /* 拖拽时的状态 */
+      /* 只有真正拖拽时才应用这个类 */
       .draggable.is-dragging {
         cursor: grabbing;
         z-index: 1000 !important;
+        /* 拖拽时稍微回正，并保持放大 */
         transform: scale(1.05) rotate(0deg) !important;
         /* 拖拽时阴影更深 */
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
-        transition: none; /* 拖拽时移除位置过渡，保证跟随手势 */
+        /* 拖拽时禁用位置过渡（跟手），但保留阴影过渡会更自然一点，或者也禁用以防卡顿 */
+        transition: none;
       }
 
       /* 选中状态：大阴影 + 轻微上浮 */
@@ -119,6 +121,12 @@
 
     <!-- Header / Controls -->
     <div class="absolute top-4 right-4 z-50 flex gap-2">
+      <button
+        id="delete-btn"
+        class="bg-white border-2 border-red-500 text-red-500 px-6 py-2 rounded-full font-bold hover:bg-red-50 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none hidden md:block"
+      >
+        DELETE
+      </button>
       <button
         id="download-btn"
         class="bg-white border-2 border-black px-6 py-2 rounded-full font-bold hover:bg-gray-100 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none"
@@ -199,23 +207,25 @@
     <canvas id="render-canvas" class="hidden"></canvas>
 
     <script>
-      // --- CONFIGURATION & CALIBRATION (已更新) ---
+      // --- CONFIGURATION & CALIBRATION ---
       const CAMERA_CONFIG = {
         // 镜头位置
-        lensTop: 50.5, // 增大数字 -> 向下移
-        lensLeft: 52.5, // 增大数字 -> 向右移
-        lensSize: 20.5, // 增大数字 -> 镜头变大
+        lensTop: 50.5,
+        lensLeft: 52.5,
+        lensSize: 20.5,
 
-        // 快门按钮位置 (粉色按钮区域)
-        btnTop: 36, // 增大数字 -> 向下移
-        btnLeft: 15, // 增大数字 -> 向右移
-        btnSize: 10, // 按钮大小
+        // 快门按钮位置
+        btnTop: 36,
+        btnLeft: 15,
+        btnSize: 10,
       };
 
       // --- STATE ---
       let selectedPhotoId = null;
       let dragItem = null;
       let dragOffset = { x: 0, y: 0 };
+      let startPos = { x: 0, y: 0 }; // 用于检测是否真的移动了
+      let isDragging = false; // 显式标记拖拽状态
       let zIndexCounter = 100;
       let audioContext = null;
 
@@ -228,6 +238,7 @@
       const galleryZone = document.getElementById("gallery-zone");
       const statusLight = document.getElementById("status-light");
       const downloadBtn = document.getElementById("download-btn");
+      const deleteBtn = document.getElementById("delete-btn");
 
       // --- INITIALIZATION ---
       async function initCamera() {
@@ -239,12 +250,32 @@
           statusLight.classList.remove("bg-red-500", "shadow-[0_0_10px_red]");
           statusLight.classList.add("bg-green-500", "shadow-[0_0_10px_green]");
         } catch (err) {
-          console.warn(
-            "Camera access denied or not found. Using fallback mode.",
-            err
-          );
+          console.warn("Camera fallback mode", err);
           video.style.display = "none";
           lensWrapper.style.backgroundColor = "#1a1a1a";
+        }
+
+        // Init Audio Context on user interaction to bypass autoplay policy
+        document.addEventListener("click", initAudioContext, { once: true });
+        document.addEventListener("keydown", initAudioContext, { once: true });
+
+        updateControls();
+      }
+
+      function initAudioContext() {
+        if (!audioContext) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            audioContext = new AudioContext();
+            // Play a tiny silent buffer to warm up the engine
+            const buffer = audioContext.createBuffer(1, 1, 22050);
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start(0);
+          }
+        } else if (audioContext.state === "suspended") {
+          audioContext.resume();
         }
       }
 
@@ -261,54 +292,70 @@
         shutterBtn.style.aspectRatio = "1/1";
       }
 
-      // --- SOUND EFFECT ---
+      // --- SOUND EFFECT (FIXED & LOUDER) ---
       function playShutterSound() {
-        try {
-          if (!audioContext) {
-            const AudioContext =
-              window.AudioContext || window.webkitAudioContext;
-            if (AudioContext) audioContext = new AudioContext();
-          }
-          if (audioContext && audioContext.state === "suspended") {
-            audioContext.resume();
-          }
-          if (!audioContext) return;
+        // Ensure context exists and is running
+        initAudioContext();
 
+        if (!audioContext) return;
+
+        try {
           const t = audioContext.currentTime;
 
-          // Noise (Shhh)
-          const bufferSize = audioContext.sampleRate * 0.1;
+          // 1. Mechanical Click (Low Thud)
+          const oscLow = audioContext.createOscillator();
+          const gainLow = audioContext.createGain();
+          oscLow.type = "square"; // Square wave for sharper mechanical sound
+          oscLow.frequency.setValueAtTime(150, t);
+          oscLow.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+
+          gainLow.gain.setValueAtTime(0.5, t);
+          gainLow.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+
+          oscLow.connect(gainLow);
+          gainLow.connect(audioContext.destination);
+          oscLow.start(t);
+          oscLow.stop(t + 0.1);
+
+          // 2. Shutter Release (High Snap)
+          const oscHigh = audioContext.createOscillator();
+          const gainHigh = audioContext.createGain();
+          oscHigh.type = "sawtooth";
+          oscHigh.frequency.setValueAtTime(800, t);
+          oscHigh.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+
+          gainHigh.gain.setValueAtTime(0.3, t);
+          gainHigh.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+
+          oscHigh.connect(gainHigh);
+          gainHigh.connect(audioContext.destination);
+          oscHigh.start(t);
+          oscHigh.stop(t + 0.15);
+
+          // 3. Motor Whir / Noise (The "Shhh" sound)
+          const bufferSize = audioContext.sampleRate * 0.15;
           const buffer = audioContext.createBuffer(
             1,
             bufferSize,
             audioContext.sampleRate
           );
           const data = buffer.getChannelData(0);
-          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
 
           const noise = audioContext.createBufferSource();
           noise.buffer = buffer;
           const noiseGain = audioContext.createGain();
-          noiseGain.gain.setValueAtTime(0.5, t);
-          noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+          // Louder noise
+          noiseGain.gain.setValueAtTime(0.8, t);
+          noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+
           noise.connect(noiseGain);
           noiseGain.connect(audioContext.destination);
-          noise.start();
-
-          // Click (High pitch)
-          const osc = audioContext.createOscillator();
-          const oscGain = audioContext.createGain();
-          osc.type = "triangle";
-          osc.frequency.setValueAtTime(800, t);
-          osc.frequency.exponentialRampToValueAtTime(100, t + 0.1);
-          oscGain.gain.setValueAtTime(0.3, t);
-          oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-          osc.connect(oscGain);
-          oscGain.connect(audioContext.destination);
-          osc.start();
-          osc.stop(t + 0.1);
+          noise.start(t);
         } catch (e) {
-          console.error("Audio play failed", e);
+          console.error("Audio Error:", e);
         }
       }
 
@@ -323,9 +370,7 @@
         void flashOverlay.offsetWidth;
         flashOverlay.classList.add("flash-active");
 
-        // Capture logic for TALL (Portrait) aspect ratio
         const canvas = document.createElement("canvas");
-        // Use 3:4 Aspect Ratio (e.g. 600x800)
         const targetWidth = 600;
         const targetHeight = 800;
 
@@ -340,20 +385,17 @@
 
         if (isCameraActive) {
           try {
-            // Calculate cropping to maintain aspect ratio
             const videoRatio = video.videoWidth / video.videoHeight;
             const targetRatio = targetWidth / targetHeight;
 
             let renderWidth, renderHeight, startX, startY;
 
             if (videoRatio > targetRatio) {
-              // Video is wider than target: Crop width
               renderHeight = video.videoHeight;
               renderWidth = video.videoHeight * targetRatio;
               startX = (video.videoWidth - renderWidth) / 2;
               startY = 0;
             } else {
-              // Video is taller (or equal) than target: Crop height
               renderWidth = video.videoWidth;
               renderHeight = video.videoWidth / targetRatio;
               startX = 0;
@@ -374,7 +416,6 @@
               targetHeight
             );
           } catch (e) {
-            console.error("Capture error", e);
             drawFallbackImage(ctx, targetWidth, targetHeight);
           }
         } else {
@@ -423,17 +464,15 @@
         const id = Date.now();
 
         const polaroid = document.createElement("div");
-        // Taller Polaroid Card: 160px Width, 240px Height
         polaroid.className =
-          "absolute bg-[#fdfdfd] shadow-lg p-3 flex flex-col items-center justify-start in-printer developing";
+          "absolute bg-[#fdfdfd] shadow-lg p-3 flex flex-col items-center justify-start in-printer developing draggable"; // Add draggable base class immediately
         polaroid.style.width = "160px";
-        polaroid.style.height = "240px"; // Increased height
+        polaroid.style.height = "240px";
         polaroid.style.paddingBottom = "30px";
         polaroid.id = `photo-${id}`;
 
         const img = document.createElement("img");
         img.src = imgUrl;
-        // Changed aspect-square to aspect-[3/4] for portrait look
         img.className =
           "w-full aspect-[3/4] object-cover bg-gray-900 pointer-events-none select-none";
         img.draggable = false;
@@ -446,10 +485,8 @@
         polaroid.appendChild(img);
         polaroid.appendChild(label);
 
-        // Append to printer slot
         printerSlot.appendChild(polaroid);
 
-        // Animate Ejection
         setTimeout(() => {
           polaroid.classList.add("ejecting");
         }, 200);
@@ -459,48 +496,36 @@
         polaroid.addEventListener("touchstart", startDrag, { passive: false });
         polaroid.addEventListener("click", (e) => {
           e.stopPropagation();
-          selectPhoto(polaroid);
+          // Click handled in startDrag/stopDrag logic for better consistency
         });
       }
 
-      // --- DRAG & DROP ---
+      // --- DRAG & DROP (IMPROVED) ---
       function startDrag(e) {
         if (e.type === "touchstart") e.preventDefault();
 
+        // Ensure audio context is ready on first interaction
+        initAudioContext();
+
         dragItem = e.currentTarget;
+        isDragging = false; // Reset dragging flag
 
-        if (!audioContext) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (AudioContext) audioContext = new AudioContext();
-        }
-
-        dragItem.classList.add("is-dragging");
-        zIndexCounter++;
-        dragItem.style.zIndex = zIndexCounter;
-
-        selectPhoto(dragItem);
-
-        const rect = dragItem.getBoundingClientRect();
+        // Get start coordinates to calculate delta later
         const clientX =
           e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
         const clientY =
           e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+        startPos = { x: clientX, y: clientY };
 
+        const rect = dragItem.getBoundingClientRect();
         dragOffset.x = clientX - rect.left;
         dragOffset.y = clientY - rect.top;
 
-        // Move to body if needed
-        if (dragItem.parentNode !== document.body) {
-          dragItem.style.left = `${rect.left}px`;
-          dragItem.style.top = `${rect.top}px`;
-          dragItem.style.transform = "none";
-          dragItem.classList.remove("ejecting", "in-printer");
-
-          // Remove 'developing' class when moving to body
-          dragItem.classList.remove("developing");
-
-          document.body.appendChild(dragItem);
-        }
+        // Immediately select on MouseDown (Animation starts now)
+        // Because we haven't added 'is-dragging' yet, the transition is active!
+        selectPhoto(dragItem);
+        zIndexCounter++;
+        dragItem.style.zIndex = zIndexCounter;
 
         document.addEventListener("mousemove", onDrag);
         document.addEventListener("mouseup", stopDrag);
@@ -517,11 +542,33 @@
         const clientY =
           e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
 
-        const newX = clientX - dragOffset.x;
-        const newY = clientY - dragOffset.y;
+        // Check if moved enough to consider it a "drag"
+        if (!isDragging) {
+          const dx = Math.abs(clientX - startPos.x);
+          const dy = Math.abs(clientY - startPos.y);
+          if (dx > 3 || dy > 3) {
+            isDragging = true;
+            // Now we are actually dragging, add the class that removes transitions for snapping
+            dragItem.classList.add("is-dragging");
 
-        dragItem.style.left = `${newX}px`;
-        dragItem.style.top = `${newY}px`;
+            // If dragging out of printer, setup
+            if (dragItem.parentNode !== document.body) {
+              const rect = dragItem.getBoundingClientRect();
+              dragItem.style.left = `${rect.left}px`;
+              dragItem.style.top = `${rect.top}px`;
+              dragItem.style.transform = "none";
+              dragItem.classList.remove("ejecting", "in-printer", "developing");
+              document.body.appendChild(dragItem);
+            }
+          }
+        }
+
+        if (isDragging) {
+          const newX = clientX - dragOffset.x;
+          const newY = clientY - dragOffset.y;
+          dragItem.style.left = `${newX}px`;
+          dragItem.style.top = `${newY}px`;
+        }
       }
 
       function stopDrag(e) {
@@ -529,17 +576,21 @@
 
         dragItem.classList.remove("is-dragging");
 
-        const galleryRect = galleryZone.getBoundingClientRect();
-        const itemRect = dragItem.getBoundingClientRect();
-        const itemCenter = {
-          x: itemRect.left + itemRect.width / 2,
-          y: itemRect.top + itemRect.height / 2,
-        };
+        if (isDragging) {
+          // Drop logic
+          const galleryRect = galleryZone.getBoundingClientRect();
+          const itemRect = dragItem.getBoundingClientRect();
+          const itemCenter = {
+            x: itemRect.left + itemRect.width / 2,
+            y: itemRect.top + itemRect.height / 2,
+          };
 
-        if (itemCenter.x > galleryRect.left) {
-          const randomRot = Math.random() * 8 - 4;
-          dragItem.style.transform = `rotate(${randomRot}deg)`;
+          if (itemCenter.x > galleryRect.left) {
+            const randomRot = Math.random() * 8 - 4;
+            dragItem.style.transform = `rotate(${randomRot}deg)`;
+          }
         }
+        // If !isDragging, it was just a click, selection already handled in startDrag
 
         dragItem = null;
         document.removeEventListener("mousemove", onDrag);
@@ -548,7 +599,7 @@
         document.removeEventListener("touchend", stopDrag);
       }
 
-      // --- SELECTION ---
+      // --- SELECTION & DELETE ---
       function selectPhoto(el) {
         document.querySelectorAll(".selected-photo").forEach((p) => {
           p.classList.remove("selected-photo");
@@ -556,18 +607,65 @@
 
         el.classList.add("selected-photo");
         selectedPhotoId = el.id;
-        downloadBtn.disabled = false;
+        updateControls();
       }
 
-      galleryZone.addEventListener("mousedown", (e) => {
-        if (e.target === galleryZone) {
-          document
-            .querySelectorAll(".selected-photo")
-            .forEach((p) => p.classList.remove("selected-photo"));
-          selectedPhotoId = null;
-          downloadBtn.disabled = true;
+      function deselectAll() {
+        document
+          .querySelectorAll(".selected-photo")
+          .forEach((p) => p.classList.remove("selected-photo"));
+        selectedPhotoId = null;
+        updateControls();
+      }
+
+      function updateControls() {
+        const hasSelection = !!selectedPhotoId;
+        downloadBtn.disabled = !hasSelection;
+        deleteBtn.disabled = !hasSelection;
+
+        if (hasSelection) {
+          deleteBtn.classList.remove("hidden");
+        } else {
+          // On mobile we might want to always show but disabled, or hide.
+          // Let's keep opacity control for disabled state
+        }
+      }
+
+      function deleteSelectedPhoto() {
+        if (selectedPhotoId) {
+          const el = document.getElementById(selectedPhotoId);
+          if (el) {
+            // Animate deletion?
+            el.style.transition = "transform 0.2s, opacity 0.2s";
+            el.style.transform = "scale(0.5)";
+            el.style.opacity = "0";
+            setTimeout(() => el.remove(), 200);
+          }
+          deselectAll();
+        }
+      }
+
+      // Global Click to Deselect
+      document.addEventListener("mousedown", (e) => {
+        // If clicked on background (body or gallery), deselect
+        // Check if clicked element is NOT a photo and NOT a control button
+        const isPhoto = e.target.closest(".draggable");
+        const isControl = e.target.closest("button");
+
+        if (!isPhoto && !isControl) {
+          deselectAll();
         }
       });
+
+      // Keyboard Delete
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Delete" || e.key === "Backspace") {
+          deleteSelectedPhoto();
+        }
+      });
+
+      // Delete Button
+      deleteBtn.addEventListener("click", deleteSelectedPhoto);
 
       // --- DOWNLOAD ---
       downloadBtn.addEventListener("click", () => {
@@ -584,27 +682,22 @@
         const text = element.innerText;
 
         const cardWidth = 600;
-        // Increased download height for portrait
         const cardHeight = 860;
         const padding = 40;
 
         canvas.width = cardWidth;
         canvas.height = cardHeight;
 
-        // Background
         ctx.fillStyle = "#fdfdfd";
         ctx.fillRect(0, 0, cardWidth, cardHeight);
 
-        // Image (Portrait calc)
         const imgWidth = cardWidth - 40 - padding * 2;
-        const imgHeight = imgWidth * (4 / 3); // 3:4 Ratio
+        const imgHeight = imgWidth * (4 / 3);
         ctx.drawImage(img, 20 + padding, 20 + padding, imgWidth, imgHeight);
 
-        // Text
         ctx.fillStyle = "#333333";
         ctx.font = '40px "Permanent Marker", cursive';
         ctx.textAlign = "center";
-        // Adjust text position based on new height
         ctx.fillText(text, cardWidth / 2, cardHeight - 60);
 
         const link = document.createElement("a");

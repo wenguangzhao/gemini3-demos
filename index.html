@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini 3 デモコレクション | AI生成の可能性を探る</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             font-family: 'Inter', sans-serif;
@@ -16,78 +16,27 @@
             min-height: 100vh;
         }
 
-        .gradient-text {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .demo-item {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+            transition: all 0.2s ease;
         }
 
-        .card {
+        .demo-item:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .section-card {
             backdrop-filter: blur(10px);
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .demo-card {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .demo-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .demo-card:hover::before {
-            opacity: 1;
-        }
-
-        .demo-card-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .special-badge {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.8;
-            }
-        }
-
-        .glow-dent-image {
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
         @keyframes float {
-            0%, 100% {
-                transform: translateY(0px);
-            }
-            50% {
-                transform: translateY(-20px);
-            }
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
 
         .floating {
@@ -96,333 +45,210 @@
     </style>
 </head>
 <body class="text-white">
-    <!-- Hero Section -->
-    <div class="container mx-auto px-4 py-16">
-        <div class="text-center mb-16">
-            <h1 class="text-6xl md:text-8xl font-black mb-6 floating">
+    <div class="container mx-auto px-4 py-12 max-w-5xl">
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl md:text-7xl font-black mb-4 floating">
                 <span class="bg-white text-transparent bg-clip-text">Gemini 3</span>
             </h1>
-            <p class="text-2xl md:text-3xl font-light mb-4 text-white/90">次世代AIが創る無限の可能性</p>
-            <p class="text-lg md:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
-                このコレクションは、Google Gemini 3によって生成された<br>
-                様々なWebアプリケーション、UI/UXデザイン、3Dゲームを紹介しています。
+            <p class="text-xl md:text-2xl font-light mb-3 text-white/90">次世代AIが創る無限の可能性</p>
+            <p class="text-base text-white/70 max-w-2xl mx-auto mb-6">
+                Google Gemini 3によって生成された様々なWebアプリケーション、UI/UXデザイン、3Dゲームのコレクション
             </p>
-            <div class="mt-8">
-                <a href="https://github.com/wenguangzhao/gemini3-demos" target="_blank" rel="noopener noreferrer"
-                   class="inline-flex items-center gap-2 bg-white text-purple-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-purple-50 transition-all hover:scale-105">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                    </svg>
-                    GitHubで見る
-                </a>
-            </div>
+            <a href="https://github.com/wenguangzhao/gemini3-demos" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-2 bg-white text-purple-600 px-6 py-3 rounded-full font-semibold hover:bg-purple-50 transition-all hover:scale-105">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
         </div>
 
         <!-- Styles Section -->
-        <section class="mb-20">
-            <div class="text-center mb-12">
-                <h2 class="text-5xl font-black mb-4 bg-white text-transparent bg-clip-text">🎨 スタイル & UI生成</h2>
-                <p class="text-xl text-white/80">Gemini 3が作り出す美しいインターフェース</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- ZenFlow Scroll -->
-                <a href="./styles/scroll/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">📜</div>
-                        <h3 class="text-2xl font-bold mb-2">ZenFlow 3D</h3>
-                        <p class="text-white/70 mb-4">スクロール連動アニメーション。デジタルノイズから禅モードへの変化を体験。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">GSAP</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">ScrollTrigger</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">3D CSS</span>
-                        </div>
+        <section class="mb-10">
+            <h2 class="text-3xl font-bold mb-4 flex items-center gap-2">
+                <span>🎨</span>
+                <span>スタイル & UI生成</span>
+            </h2>
+            <div class="section-card rounded-xl overflow-hidden">
+                <a href="./styles/scroll/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0">📜</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">ZenFlow 3D</h3>
+                        <p class="text-sm text-gray-600">スクロール連動3Dアニメーション - デジタルノイズから禅モードへの変化</p>
                     </div>
                 </a>
 
-                <!-- Fluid Morph Particle -->
-                <a href="./styles/particle/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">✨</div>
-                        <h3 class="text-2xl font-bold mb-2">Fluid Morph</h3>
-                        <p class="text-white/70 mb-4">流体力学を使用した高度なパーティクルシステム。カスタムGLSLシェーダー実装。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">WebGL</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">GLSL</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Three.js</span>
-                        </div>
+                <a href="./styles/particle/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0">✨</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">Fluid Morph Particle</h3>
+                        <p class="text-sm text-gray-600">流体力学パーティクルシステム - カスタムGLSLシェーダー実装</p>
                     </div>
                 </a>
 
-                <!-- X Clone -->
-                <a href="./styles/x/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">𝕏</div>
-                        <h3 class="text-2xl font-bold mb-2">X (日本版) クローン</h3>
-                        <p class="text-white/70 mb-4">X（旧Twitter）の完璧な再現。日本語ローカライゼーション対応。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Tailwind CSS</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Responsive</span>
-                        </div>
+                <a href="./styles/x/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0">𝕏</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">X (日本版) クローン</h3>
+                        <p class="text-sm text-gray-600">X（旧Twitter）の完璧な再現 - 日本語ローカライゼーション対応</p>
                     </div>
                 </a>
 
-                <!-- Instant Camera -->
-                <a href="./styles/camera/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">📷</div>
-                        <h3 class="text-2xl font-bold mb-2">インスタントカメラ</h3>
-                        <p class="text-white/70 mb-4">レトロなポラロイド風カメラアプリ。リアルタイム撮影、写真の現像エフェクト、ドラッグ＆ドロップ対応。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">WebRTC</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Canvas API</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Web Audio</span>
-                        </div>
+                <a href="./styles/camera/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0">📷</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">インスタントカメラ</h3>
+                        <p class="text-sm text-gray-600">レトロなポラロイド風カメラアプリ - リアルタイム撮影と現像エフェクト</p>
                     </div>
                 </a>
 
-                <!-- macOS Interface -->
-                <a href="./styles/macos/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4"></div>
-                        <h3 class="text-2xl font-bold mb-2">macOS インターフェース</h3>
-                        <p class="text-white/70 mb-4">macOSインターフェースの忠実な再現。モダンなデザインシステム。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">UI/UX</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Design</span>
-                        </div>
+                <a href="./styles/macos/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">macOS インターフェース</h3>
+                        <p class="text-sm text-gray-600">macOSインターフェースの忠実な再現 - モダンなデザインシステム</p>
                     </div>
                 </a>
 
-                <!-- GlowDent - Special Card -->
-                <a href="./styles/glow-dent/index.html" class="card demo-card rounded-2xl p-6 block md:col-span-2">
-                    <div class="demo-card-content">
-                        <div class="flex items-start gap-4 mb-4">
-                            <div class="text-5xl">🦷</div>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <h3 class="text-2xl font-bold">GlowDent クリニック</h3>
-                                    <span class="special-badge text-xs px-3 py-1 rounded-full font-bold">PNG → HTML 自動生成</span>
-                                </div>
-                                <p class="text-white/70 mb-4">歯科クリニックのランディングページ。下記のデザイン画像から自動生成。Reactベースのインタラクティブコンポーネントとスムーズなスクロールアニメーションを実装。</p>
-                                <div class="flex flex-wrap gap-2 mb-4">
-                                    <span class="text-xs bg-white/20 px-3 py-1 rounded-full">React</span>
-                                    <span class="text-xs bg-white/20 px-3 py-1 rounded-full">GSAP</span>
-                                    <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Image Recognition</span>
-                                </div>
-                                <!-- Original Design Image -->
-                                <div class="mt-4">
-                                    <p class="text-sm text-white/60 mb-2">元のデザイン画像：</p>
-                                    <img src="./styles/glow-dent/original.png" alt="Original GlowDent Design" class="glow-dent-image w-full max-w-2xl">
-                                </div>
-                            </div>
+                <a href="./styles/glow-dent/index.html" class="demo-item flex items-center gap-4 p-4 block">
+                    <div class="text-3xl flex-shrink-0">🦷</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="text-lg font-semibold text-gray-900">GlowDent クリニック</h3>
+                            <span class="text-xs bg-gradient-to-r from-pink-500 to-rose-500 text-white px-2 py-0.5 rounded-full font-semibold">PNG→HTML</span>
                         </div>
+                        <p class="text-sm text-gray-600">歯科クリニックのランディングページ - デザイン画像から自動生成</p>
                     </div>
                 </a>
             </div>
         </section>
 
         <!-- Tools Section -->
-        <section class="mb-20">
-            <div class="text-center mb-12">
-                <h2 class="text-5xl font-black mb-4 bg-white text-transparent bg-clip-text">🛠️ ツール生成</h2>
-                <p class="text-xl text-white/80">実用的なWebツールとユーティリティ</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Image Converter -->
-                <a href="./tools/image_convert/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">🖼️</div>
-                        <h3 class="text-2xl font-bold mb-2">画像変換ツール</h3>
-                        <p class="text-white/70 mb-4">画像のリサイズ、フォーマット変換、最適化を行う高機能ツール。リアルタイムプレビュー対応。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Tailwind CSS</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">REST API</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">File Upload</span>
-                        </div>
-                        <div class="mt-3 pt-3 border-t border-white/20">
-                            <p class="text-xs text-white/60">
-                                <span class="inline-block mr-1">💡</span>
-                                フロントエンドはGemini 3生成、バックエンドAPIは独自実装
-                            </p>
-                        </div>
+        <section class="mb-10">
+            <h2 class="text-3xl font-bold mb-4 flex items-center gap-2">
+                <span>🛠️</span>
+                <span>ツール生成</span>
+            </h2>
+            <div class="section-card rounded-xl overflow-hidden">
+                <a href="./tools/image_convert/index.html" class="demo-item flex items-center gap-4 p-4 block">
+                    <div class="text-3xl flex-shrink-0">🖼️</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">画像変換ツール</h3>
+                        <p class="text-sm text-gray-600">画像のリサイズ、フォーマット変換、最適化 - リアルタイムプレビュー対応</p>
                     </div>
                 </a>
             </div>
         </section>
 
         <!-- Games Section -->
-        <section class="mb-20">
-            <div class="text-center mb-12">
-                <h2 class="text-5xl font-black mb-4 bg-white text-transparent bg-clip-text">🎮 3Dゲーム生成</h2>
-                <p class="text-xl text-white/80">高度な3Dグラフィックスとゲームロジック</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Kawaii Shooter -->
-                <a href="./games/shoot/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">🔫</div>
-                        <h3 class="text-2xl font-bold mb-2">カワイイシューター FPS</h3>
-                        <p class="text-white/70 mb-4">3D一人称シューティング。可愛いスライムを倒そう！物理演算と敵AIを搭載。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Three.js</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Web Audio</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Physics</span>
-                        </div>
+        <section class="mb-10">
+            <h2 class="text-3xl font-bold mb-4 flex items-center gap-2">
+                <span>🎮</span>
+                <span>3Dゲーム生成</span>
+            </h2>
+            <div class="section-card rounded-xl overflow-hidden">
+                <a href="./games/shoot/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0">🔫</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">カワイイシューター FPS</h3>
+                        <p class="text-sm text-gray-600">3D一人称シューティング - 可愛いスライムを倒す物理演算ゲーム</p>
                     </div>
                 </a>
 
-                <!-- Cyber Sweeper 3D -->
-                <a href="./games/minesweeper/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">💣</div>
-                        <h3 class="text-2xl font-bold mb-2">サイバースイーパー 3D</h3>
-                        <p class="text-white/70 mb-4">サイバーパンクスタイルの3Dマインスイーパー。3つの難易度レベルとGSAPアニメーション。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Three.js</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">GSAP</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">3D</span>
-                        </div>
+                <a href="./games/minesweeper/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0">💣</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">サイバースイーパー 3D</h3>
+                        <p class="text-sm text-gray-600">サイバーパンクスタイルの3Dマインスイーパー - 3つの難易度レベル</p>
                     </div>
                 </a>
 
-                <!-- Snake -->
-                <a href="./games/snake/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">🐍</div>
-                        <h3 class="text-2xl font-bold mb-2">森の小さなヘビ</h3>
-                        <p class="text-white/70 mb-4">季節の変化と昼夜サイクルを持つスネークゲーム。季節の作物を集めよう。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Canvas 2D</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">GSAP</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Season System</span>
-                        </div>
+                <a href="./games/snake/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0">🐍</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">森の小さなヘビ</h3>
+                        <p class="text-sm text-gray-600">季節の変化と昼夜サイクルを持つスネークゲーム - 季節の作物を集める</p>
                     </div>
                 </a>
 
-                <!-- Neko Rush -->
-                <a href="./games/neko-rush/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">🐱</div>
-                        <h3 class="text-2xl font-bold mb-2">ネコラッシュ</h3>
-                        <p class="text-white/70 mb-4">猫を集める3Dランナーゲーム。加算・減算・乗算・除算の計算ゲートを使用。障害物を避けよう！</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Three.js</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">3D</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Runner</span>
-                        </div>
+                <a href="./games/neko-rush/index.html" class="demo-item flex items-center gap-4 p-4 border-b border-gray-200/20 block">
+                    <div class="text-3xl flex-shrink-0">🐱</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">ネコラッシュ</h3>
+                        <p class="text-sm text-gray-600">猫を集める3Dランナーゲーム - 計算ゲート（加減乗除）で猫の数を増やす</p>
                     </div>
                 </a>
 
-                <!-- 3D Tetris Block -->
-                <a href="./games/block/index.html" class="card demo-card rounded-2xl p-6 block">
-                    <div class="demo-card-content">
-                        <div class="text-5xl mb-4">🧱</div>
-                        <h3 class="text-2xl font-bold mb-2">3Dテトリスブロック</h3>
-                        <p class="text-white/70 mb-4">3D空間でテトリスを体験。クラシックなパズルゲームを新しい視点で再体験。</p>
-                        <div class="flex flex-wrap gap-2">
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Three.js</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">3D</span>
-                            <span class="text-xs bg-white/20 px-3 py-1 rounded-full">Puzzle</span>
-                        </div>
+                <a href="./games/block/index.html" class="demo-item flex items-center gap-4 p-4 block">
+                    <div class="text-3xl flex-shrink-0">🧱</div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900">3Dテトリスブロック</h3>
+                        <p class="text-sm text-gray-600">3D空間でテトリスを体験 - クラシックなパズルゲームの新しい視点</p>
                     </div>
                 </a>
             </div>
         </section>
 
-        <!-- Technology Stack -->
-        <section class="mb-20">
-            <div class="card rounded-2xl p-8">
-                <h2 class="text-4xl font-black mb-6 text-center">🛠️ 技術スタック</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        <!-- Tech Stack -->
+        <section class="mb-10">
+            <div class="section-card rounded-xl p-6">
+                <h2 class="text-2xl font-bold mb-4 text-center">🛠️ 技術スタック</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm">
                     <div>
-                        <div class="text-4xl mb-2">⚡</div>
-                        <h3 class="font-bold mb-1">Three.js</h3>
-                        <p class="text-sm text-white/70">3Dレンダリング</p>
-                    </div>
-                    <div>
-                        <div class="text-4xl mb-2">🎬</div>
-                        <h3 class="font-bold mb-1">GSAP</h3>
-                        <p class="text-sm text-white/70">アニメーション</p>
+                        <div class="text-2xl mb-1">⚡</div>
+                        <div class="font-semibold">Three.js</div>
                     </div>
                     <div>
-                        <div class="text-4xl mb-2">⚛️</div>
-                        <h3 class="font-bold mb-1">React</h3>
-                        <p class="text-sm text-white/70">UIコンポーネント</p>
+                        <div class="text-2xl mb-1">🎬</div>
+                        <div class="font-semibold">GSAP</div>
                     </div>
                     <div>
-                        <div class="text-4xl mb-2">🎨</div>
-                        <h3 class="font-bold mb-1">Tailwind CSS</h3>
-                        <p class="text-sm text-white/70">スタイリング</p>
+                        <div class="text-2xl mb-1">⚛️</div>
+                        <div class="font-semibold">React</div>
                     </div>
                     <div>
-                        <div class="text-4xl mb-2">🎵</div>
-                        <h3 class="font-bold mb-1">Web Audio API</h3>
-                        <p class="text-sm text-white/70">サウンド生成</p>
+                        <div class="text-2xl mb-1">🎨</div>
+                        <div class="font-semibold">Tailwind CSS</div>
                     </div>
                     <div>
-                        <div class="text-4xl mb-2">🔷</div>
-                        <h3 class="font-bold mb-1">WebGL</h3>
-                        <p class="text-sm text-white/70">GPUアクセラレーション</p>
+                        <div class="text-2xl mb-1">🔷</div>
+                        <div class="font-semibold">WebGL</div>
                     </div>
                     <div>
-                        <div class="text-4xl mb-2">🌊</div>
-                        <h3 class="font-bold mb-1">GLSL Shaders</h3>
-                        <p class="text-sm text-white/70">カスタムシェーダー</p>
+                        <div class="text-2xl mb-1">🌊</div>
+                        <div class="font-semibold">GLSL Shaders</div>
                     </div>
                     <div>
-                        <div class="text-4xl mb-2">📱</div>
-                        <h3 class="font-bold mb-1">レスポンシブ</h3>
-                        <p class="text-sm text-white/70">全デバイス対応</p>
+                        <div class="text-2xl mb-1">🎵</div>
+                        <div class="font-semibold">Web Audio</div>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Features Highlight -->
-        <section class="mb-20">
-            <div class="card rounded-2xl p-8">
-                <h2 class="text-4xl font-black mb-8 text-center">💡 主な特徴</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="text-center">
-                        <div class="text-5xl mb-4">🎯</div>
-                        <h3 class="text-xl font-bold mb-2">完全自動生成</h3>
-                        <p class="text-white/70">すべてのデモはGemini 3によって生成されました。コードからデザイン、ロジックまで。</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-5xl mb-4">🚀</div>
-                        <h3 class="text-xl font-bold mb-2">最先端技術</h3>
-                        <p class="text-white/70">最新のWeb技術を活用：WebGL、GLSL、Three.js、Reactなど。</p>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-5xl mb-4">🎨</div>
-                        <h3 class="text-xl font-bold mb-2">画像からコードへ</h3>
-                        <p class="text-white/70">デザイン画像を認識し、完全に機能するHTMLを自動生成。</p>
+                    <div>
+                        <div class="text-2xl mb-1">📱</div>
+                        <div class="font-semibold">Responsive</div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Footer -->
-        <footer class="text-center py-12 border-t border-white/20">
-            <div class="mb-6">
-                <h3 class="text-2xl font-bold mb-2">Gemini 3 デモコレクション</h3>
-                <p class="text-white/70">AI生成技術の可能性を探る実験的プロジェクト</p>
+        <footer class="text-center py-8 border-t border-white/20">
+            <div class="mb-4">
+                <h3 class="text-xl font-bold mb-1">Gemini 3 デモコレクション</h3>
+                <p class="text-sm text-white/70">AI生成技術の可能性を探る実験的プロジェクト</p>
             </div>
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm">
                 <a href="https://github.com/wenguangzhao/gemini3-demos" target="_blank" rel="noopener noreferrer"
                    class="flex items-center gap-2 hover:text-purple-200 transition-colors">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                     </svg>
                     GitHubリポジトリ
                 </a>
                 <span class="text-white/40">|</span>
-                <span class="text-white/60">GitHub Pagesでホスティング</span>
+                <span class="text-white/60">GitHub Pages</span>
             </div>
-            <p class="text-sm text-white/50">
+            <p class="text-xs text-white/50 mt-4">
                 © 2025 Gemini 3 デモ。すべてのデモはGoogle Gemini 3によって生成されました。
             </p>
         </footer>
