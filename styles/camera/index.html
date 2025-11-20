@@ -14,16 +14,15 @@
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         overflow: hidden; /* Prevent scrolling when dragging */
         touch-action: none;
-        user-select: none; /* 全局禁止文字选择 */
+        user-select: none;
         -webkit-user-select: none;
       }
 
-      /* Custom Font for the Polaroid Text */
       .handwritten {
         font-family: "Permanent Marker", cursive;
       }
 
-      /* Flash Animation */
+      /* Animations */
       @keyframes flash-animation {
         0% {
           opacity: 1;
@@ -36,7 +35,6 @@
         animation: flash-animation 0.8s ease-out forwards;
       }
 
-      /* Photo Ejection Animation - Stops halfway */
       @keyframes eject-photo-partial {
         0% {
           transform: translateY(100%);
@@ -50,7 +48,6 @@
           forwards;
       }
 
-      /* Developing Effect (显影效果) - 2s */
       @keyframes develop-image {
         0% {
           filter: blur(8px) grayscale(1) brightness(1.8) contrast(0.8);
@@ -64,12 +61,25 @@
           opacity: 1;
         }
       }
-      /* 只有带有 developing 类的元素才会执行显影动画 */
       .developing img {
         animation: develop-image 2s ease-in-out forwards;
       }
 
-      /* Dragging & Selection Styles */
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .modal-enter {
+        animation: fade-in 0.2s ease-out forwards;
+      }
+
+      /* Interactive Elements */
       .draggable {
         cursor: grab;
         position: absolute;
@@ -78,7 +88,6 @@
         touch-action: none;
         will-change: transform, box-shadow;
       }
-
       .draggable.is-dragging {
         cursor: grabbing;
         z-index: 1000 !important;
@@ -86,13 +95,11 @@
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
         transition: none;
       }
-
       .selected-photo {
         z-index: 50;
         transform: scale(1.02);
         box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.4);
       }
-
       .in-printer {
         z-index: 0;
         cursor: grab;
@@ -101,7 +108,7 @@
         transform: translateY(-65%) !important;
       }
 
-      /* Range Slider Styling */
+      /* Slider */
       input[type="range"] {
         -webkit-appearance: none;
         background: transparent;
@@ -111,7 +118,7 @@
         height: 16px;
         width: 16px;
         border-radius: 50%;
-        background: #ec4899; /* Pink-500 */
+        background: #ec4899;
         cursor: pointer;
         margin-top: -6px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -123,6 +130,21 @@
         background: #e5e7eb;
         border-radius: 2px;
       }
+
+      /* Scrollbar for Modal */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
     </style>
   </head>
   <body
@@ -133,6 +155,51 @@
       id="flash-overlay"
       class="fixed inset-0 bg-white pointer-events-none opacity-0 z-[9999]"
     ></div>
+
+    <!-- Prompt History Modal (Hidden by default) -->
+    <div
+      id="prompts-modal"
+      class="fixed inset-0 bg-black/50 z-[10000] hidden flex items-center justify-center p-4 backdrop-blur-sm"
+    >
+      <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col modal-enter overflow-hidden"
+      >
+        <!-- Modal Header -->
+        <div
+          class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50"
+        >
+          <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <span class="text-2xl">📜</span> Prompt History
+          </h2>
+          <button
+            id="close-modal-btn"
+            class="text-gray-400 hover:text-gray-800 transition p-2 cursor-pointer"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <!-- Modal Body -->
+        <div
+          id="prompts-list"
+          class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gray-50/50"
+        >
+          <!-- Content will be injected here -->
+        </div>
+      </div>
+    </div>
 
     <!-- Header / Controls -->
     <div
@@ -160,6 +227,14 @@
         >
       </div>
 
+      <!-- New Prompts Button (Hidden by default) -->
+      <button
+        id="prompts-btn"
+        class="bg-white border-2 border-blue-500 text-blue-500 px-5 py-2 rounded-full font-bold hover:bg-blue-50 transition shadow-lg cursor-pointer select-none hidden pointer-events-auto"
+      >
+        PROMPTS
+      </button>
+
       <button
         id="delete-btn"
         class="bg-white border-2 border-red-500 text-red-500 px-5 py-2 rounded-full font-bold hover:bg-red-50 transition shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none hidden md:block pointer-events-auto"
@@ -179,29 +254,21 @@
       class="w-full h-1/2 md:w-1/2 md:h-full flex items-center justify-center relative p-4"
       id="camera-zone"
     >
-      <!-- Camera Container -->
       <div
         class="relative w-[320px] md:w-[450px] transition-all duration-500"
         id="camera-container"
       >
-        <!-- The Ejecting Photo Slot (Behind Camera) -->
         <div
           class="absolute top-0 left-1/2 -translate-x-1/2 w-[160px] h-[240px] z-0"
           id="printer-slot"
-        >
-          <!-- Photos will be appended here -->
-        </div>
-
-        <!-- Camera Image -->
+        ></div>
         <img
           src="https://wgzhao.me/images/img/X5CczwV7I?w=800&fm=png"
           alt="Instant Camera"
           class="w-full relative z-20 pointer-events-none drop-shadow-2xl select-none"
           id="camera-img"
         />
-
-        <!-- Webcam Feed (Lens) -->
-        <!-- Initial Style Hidden to prevent jump, JS will show it after positioning -->
+        <!-- Lens wrapper opacity controlled by JS -->
         <div
           id="lens-wrapper"
           class="absolute z-30 overflow-hidden rounded-full bg-[#111] border-4 border-gray-800/50 shadow-inner"
@@ -215,15 +282,11 @@
             class="w-full h-full object-cover transform scale-x-[-1]"
           ></video>
         </div>
-
-        <!-- Shutter Button Area -->
         <div
           id="shutter-btn"
           class="absolute z-40 rounded-full cursor-pointer hover:bg-white/10 active:bg-white/20 transition"
           title="Take Photo"
         ></div>
-
-        <!-- Indicator Light -->
         <div
           id="status-light"
           class="absolute top-[18%] right-[28%] w-3 h-3 rounded-full bg-red-500 z-30 shadow-[0_0_10px_red] transition-colors duration-300"
@@ -231,7 +294,7 @@
       </div>
     </div>
 
-    <!-- Right Side: Photo Gallery / Drop Zone -->
+    <!-- Right Side: Gallery -->
     <div
       class="w-full h-1/2 md:w-1/2 md:h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] relative overflow-hidden"
       id="gallery-zone"
@@ -243,11 +306,9 @@
       </div>
     </div>
 
-    <!-- Hidden Canvas for rendering download image -->
     <canvas id="render-canvas" class="hidden"></canvas>
 
     <script>
-      // --- CONFIGURATION ---
       const CAMERA_CONFIG = {
         lensTop: 50.5,
         lensLeft: 52.5,
@@ -257,7 +318,6 @@
         btnSize: 10,
       };
 
-      // --- STATE ---
       let selectedPhotoId = null;
       let dragItem = null;
       let dragOffset = { x: 0, y: 0 };
@@ -266,7 +326,7 @@
       let zIndexCounter = 100;
       let audioContext = null;
 
-      // --- DOM ---
+      // Elements
       const video = document.getElementById("webcam");
       const lensWrapper = document.getElementById("lens-wrapper");
       const shutterBtn = document.getElementById("shutter-btn");
@@ -278,8 +338,96 @@
       const deleteBtn = document.getElementById("delete-btn");
       const beautySlider = document.getElementById("beauty-slider");
       const beautyVal = document.getElementById("beauty-val");
+      const promptsBtn = document.getElementById("prompts-btn");
+      const promptsModal = document.getElementById("prompts-modal");
+      const promptsList = document.getElementById("prompts-list");
+      const closeModalBtn = document.getElementById("close-modal-btn");
 
-      // --- INIT ---
+      // --- 1. JSON IMPORT LOGIC ---
+      async function tryLoadPrompts() {
+        try {
+          // 尝试动态导入本地 json 文件
+          // 注意：这需要服务器环境支持 (http://localhost)
+          const module = await import("./prompts.json", {
+            with: { type: "json" },
+          });
+          const data = module.default;
+
+          if (data && data.userPrompts) {
+            initPromptsFeature(data.userPrompts);
+          }
+        } catch (e) {
+          console.warn(
+            "Prompts JSON import failed (likely due to local file access restriction). Hiding prompts button.",
+            e
+          );
+          // 失败时不显示按钮
+        }
+      }
+
+      function initPromptsFeature(prompts) {
+        // 显示按钮
+        promptsBtn.classList.remove("hidden");
+
+        // 渲染列表
+        promptsList.innerHTML = prompts
+          .map((item, index) => {
+            let imagesHtml = "";
+            if (item.imgs && item.imgs.length > 0) {
+              imagesHtml = `
+                        <div class="grid grid-cols-3 gap-2 mt-3">
+                            ${item.imgs
+                              .map((url) => {
+                                // 使用参数调整大小以作为缩略图
+                                const thumbUrl = url.includes("?")
+                                  ? `${url}&w=200&h=200&fit=crop`
+                                  : `${url}?w=200&h=200&fit=crop`;
+                                return `
+                                    <div class="aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                                        <img src="${thumbUrl}" class="w-full h-full object-cover hover:scale-110 transition duration-300" loading="lazy" alt="Prompt result">
+                                    </div>
+                                `;
+                              })
+                              .join("")}
+                        </div>
+                    `;
+            }
+
+            return `
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-start gap-3">
+                            <div class="bg-blue-100 text-blue-600 font-bold w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0 text-sm">
+                                ${index + 1}
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-gray-800 font-medium text-lg leading-relaxed select-text cursor-text whitespace-pre-wrap break-words font-sans text-sm">
+                                    ${item.text}
+                                </p>
+                                ${imagesHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+
+        // 绑定事件
+        promptsBtn.addEventListener("click", () => {
+          promptsModal.classList.remove("hidden");
+        });
+
+        closeModalBtn.addEventListener("click", () => {
+          promptsModal.classList.add("hidden");
+        });
+
+        promptsModal.addEventListener("click", (e) => {
+          if (e.target === promptsModal) {
+            promptsModal.classList.add("hidden");
+          }
+        });
+      }
+
+      // --- 2. CAMERA LOGIC ---
       async function initCamera() {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -289,14 +437,14 @@
           statusLight.classList.remove("bg-red-500", "shadow-[0_0_10px_red]");
           statusLight.classList.add("bg-green-500", "shadow-[0_0_10px_green]");
         } catch (err) {
-          console.warn("Camera fallback", err);
           video.style.display = "none";
           lensWrapper.style.backgroundColor = "#1a1a1a";
         }
         document.addEventListener("click", initAudioContext, { once: true });
         document.addEventListener("keydown", initAudioContext, { once: true });
         updateControls();
-        // Calibration is now called immediately at the end of script
+        applyCalibration(); // 立即应用位置
+        tryLoadPrompts(); // 尝试加载 Prompt 列表
       }
 
       function initAudioContext() {
@@ -314,10 +462,7 @@
         lensWrapper.style.width = `${CAMERA_CONFIG.lensSize}%`;
         lensWrapper.style.height = `${CAMERA_CONFIG.lensSize}%`;
         lensWrapper.style.aspectRatio = "1/1";
-
-        // Show lens after positioning
-        lensWrapper.style.opacity = "1";
-
+        lensWrapper.style.opacity = "1"; // 位置设置好后再显示
         shutterBtn.style.top = `${CAMERA_CONFIG.btnTop}%`;
         shutterBtn.style.left = `${CAMERA_CONFIG.btnLeft}%`;
         shutterBtn.style.width = `${CAMERA_CONFIG.btnSize}%`;
@@ -334,83 +479,70 @@
         initAudioContext();
         if (!audioContext) return;
         const t = audioContext.currentTime;
-
-        // Mechanical Click
         const oscLow = audioContext.createOscillator();
-        const gainLow = audioContext.createGain();
         oscLow.type = "square";
         oscLow.frequency.setValueAtTime(150, t);
         oscLow.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+        const gainLow = audioContext.createGain();
         gainLow.gain.setValueAtTime(0.5, t);
         gainLow.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
         oscLow.connect(gainLow);
         gainLow.connect(audioContext.destination);
         oscLow.start(t);
         oscLow.stop(t + 0.1);
-
-        // High Snap
         const oscHigh = audioContext.createOscillator();
-        const gainHigh = audioContext.createGain();
         oscHigh.type = "sawtooth";
         oscHigh.frequency.setValueAtTime(800, t);
         oscHigh.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+        const gainHigh = audioContext.createGain();
         gainHigh.gain.setValueAtTime(0.3, t);
         gainHigh.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
         oscHigh.connect(gainHigh);
         gainHigh.connect(audioContext.destination);
         oscHigh.start(t);
         oscHigh.stop(t + 0.15);
-
-        // Motor Noise
-        const bufferSize = audioContext.sampleRate * 0.15;
-        const buffer = audioContext.createBuffer(
+        const bSize = audioContext.sampleRate * 0.15;
+        const buff = audioContext.createBuffer(
           1,
-          bufferSize,
+          bSize,
           audioContext.sampleRate
         );
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const d = buff.getChannelData(0);
+        for (let i = 0; i < bSize; i++) d[i] = Math.random() * 2 - 1;
         const noise = audioContext.createBufferSource();
-        noise.buffer = buffer;
-        const noiseGain = audioContext.createGain();
-        noiseGain.gain.setValueAtTime(0.8, t);
-        noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
-        noise.connect(noiseGain);
-        noiseGain.connect(audioContext.destination);
+        noise.buffer = buff;
+        const nGain = audioContext.createGain();
+        nGain.gain.setValueAtTime(0.8, t);
+        nGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+        noise.connect(nGain);
+        nGain.connect(audioContext.destination);
         noise.start(t);
       }
 
-      // --- CORE BEAUTY ALGORITHM ---
-      function applySmartSmooth(ctx, width, height, level) {
+      // --- BEAUTY & PHOTO ---
+      function applySmartSmooth(ctx, w, h, level) {
         if (level <= 0) return;
-
-        const originalImageData = ctx.getImageData(0, 0, width, height);
-        const src = originalImageData.data;
+        const srcData = ctx.getImageData(0, 0, w, h);
+        const src = srcData.data;
 
         const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = width;
-        tempCanvas.height = height;
+        tempCanvas.width = w;
+        tempCanvas.height = h;
         const tempCtx = tempCanvas.getContext("2d");
+        tempCtx.filter = `blur(${2 + level * 1.5}px)`;
+        tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
+        const blurData = tempCtx.getImageData(0, 0, w, h);
+        const blurred = blurData.data;
 
-        const blurRadius = 2 + level * 1.5;
-        tempCtx.filter = `blur(${blurRadius}px)`;
-        tempCtx.drawImage(ctx.canvas, 0, 0, width, height);
-
-        const blurredImageData = tempCtx.getImageData(0, 0, width, height);
-        const blurred = blurredImageData.data;
-
-        const outputImageData = ctx.createImageData(width, height);
-        const dst = outputImageData.data;
-
-        const edgeThreshold = 15 + level * 2;
+        const outData = ctx.createImageData(w, h);
+        const dst = outData.data;
+        const threshold = 15 + level * 2;
 
         for (let i = 0; i < src.length; i += 4) {
-          const r = src[i];
-          const g = src[i + 1];
-          const b = src[i + 2];
-          const a = src[i + 3];
-
-          // Simple Skin Detection
+          const r = src[i],
+            g = src[i + 1],
+            b = src[i + 2],
+            a = src[i + 3];
           const isSkin =
             r > 45 &&
             g > 40 &&
@@ -418,24 +550,19 @@
             r > g &&
             r > b &&
             Math.abs(r - g) > 10;
-
           if (isSkin) {
-            const rB = blurred[i];
-            const gB = blurred[i + 1];
-            const bB = blurred[i + 2];
-
-            const delta =
-              Math.abs(r - rB) + Math.abs(g - gB) + Math.abs(b - bB);
-
-            let factor = 0;
-            if (delta < edgeThreshold) {
-              factor = 1 - delta / edgeThreshold;
-              factor = Math.min(factor * (level / 5), 0.8);
+            const diff =
+              Math.abs(r - blurred[i]) +
+              Math.abs(g - blurred[i + 1]) +
+              Math.abs(b - blurred[i + 2]);
+            let f = 0;
+            if (diff < threshold) {
+              f = 1 - diff / threshold;
+              f = Math.min(f * (level / 5), 0.8);
             }
-
-            dst[i] = r * (1 - factor) + rB * factor;
-            dst[i + 1] = g * (1 - factor) + gB * factor;
-            dst[i + 2] = b * (1 - factor) + bB * factor;
+            dst[i] = r * (1 - f) + blurred[i] * f;
+            dst[i + 1] = g * (1 - f) + blurred[i + 1] * f;
+            dst[i + 2] = b * (1 - f) + blurred[i + 2] * f;
           } else {
             dst[i] = r;
             dst[i + 1] = g;
@@ -443,86 +570,60 @@
           }
           dst[i + 3] = a;
         }
-
-        ctx.putImageData(outputImageData, 0, 0);
+        ctx.putImageData(outData, 0, 0);
       }
 
-      function applyWhitening(ctx, width, height, level) {
+      function applyWhitening(ctx, w, h, level) {
         if (level <= 0) return;
-
         ctx.save();
         ctx.globalCompositeOperation = "soft-light";
-        ctx.fillStyle = `rgba(255, 250, 240, ${level * 0.06})`; // Warm white
-        ctx.fillRect(0, 0, width, height);
-        ctx.globalCompositeOperation = "source-over";
+        ctx.fillStyle = `rgba(255, 250, 240, ${level * 0.06})`;
+        ctx.fillRect(0, 0, w, h);
         ctx.restore();
       }
 
-      shutterBtn.addEventListener("click", takePhoto);
-
-      function takePhoto() {
+      shutterBtn.addEventListener("click", () => {
         playShutterSound();
         flashOverlay.classList.remove("flash-active");
         void flashOverlay.offsetWidth;
         flashOverlay.classList.add("flash-active");
 
-        const canvas = document.createElement("canvas");
-        const targetWidth = 600;
-        const targetHeight = 800;
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        const ctx = canvas.getContext("2d");
+        const cvs = document.createElement("canvas");
+        const tW = 600,
+          tH = 800;
+        cvs.width = tW;
+        cvs.height = tH;
+        const ctx = cvs.getContext("2d");
+        const active = video.style.display !== "none";
+        const lvl = parseInt(beautySlider.value);
 
-        const isCameraActive =
-          video.style.display !== "none" &&
-          video.srcObject &&
-          video.srcObject.active;
-        const level = parseInt(beautySlider.value);
-
-        if (isCameraActive) {
-          try {
-            const videoRatio = video.videoWidth / video.videoHeight;
-            const targetRatio = targetWidth / targetHeight;
-            let renderW, renderH, sX, sY;
-            if (videoRatio > targetRatio) {
-              renderH = video.videoHeight;
-              renderW = video.videoHeight * targetRatio;
-              sX = (video.videoWidth - renderW) / 2;
-              sY = 0;
-            } else {
-              renderW = video.videoWidth;
-              renderH = video.videoWidth / targetRatio;
-              sX = 0;
-              sY = (video.videoHeight - renderH) / 2;
-            }
-
-            ctx.translate(targetWidth, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(
-              video,
-              sX,
-              sY,
-              renderW,
-              renderH,
-              0,
-              0,
-              targetWidth,
-              targetHeight
-            );
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-            applySmartSmooth(ctx, targetWidth, targetHeight, level);
-            applyWhitening(ctx, targetWidth, targetHeight, level);
-          } catch (e) {
-            console.error(e);
-            drawFallbackImage(ctx, targetWidth, targetHeight);
+        if (active) {
+          const vR = video.videoWidth / video.videoHeight,
+            tR = tW / tH;
+          let rW, rH, sX, sY;
+          if (vR > tR) {
+            rH = video.videoHeight;
+            rW = rH * tR;
+            sX = (video.videoWidth - rW) / 2;
+            sY = 0;
+          } else {
+            rW = video.videoWidth;
+            rH = rW / tR;
+            sX = 0;
+            sY = (video.videoHeight - rH) / 2;
           }
+
+          ctx.translate(tW, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, sX, sY, rW, rH, 0, 0, tW, tH);
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          applySmartSmooth(ctx, tW, tH, lvl);
+          applyWhitening(ctx, tW, tH, lvl);
         } else {
-          drawFallbackImage(ctx, targetWidth, targetHeight);
+          drawFallback(ctx, tW, tH);
         }
 
-        const imgDataUrl = canvas.toDataURL("image/png");
-        const timestamp = new Date().toLocaleString("en-US", {
+        const ts = new Date().toLocaleString("en-US", {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -530,106 +631,72 @@
           minute: "numeric",
           hour12: true,
         });
+        createPolaroid(cvs.toDataURL("image/png"), ts);
+      });
 
-        createPolaroid(imgDataUrl, timestamp);
-      }
-
-      function drawFallbackImage(ctx, w, h) {
-        ctx.fillStyle = "#111111";
+      function drawFallback(ctx, w, h) {
+        ctx.fillStyle = "#111";
         ctx.fillRect(0, 0, w, h);
         for (let i = 0; i < 80000; i++) {
-          const x = Math.random() * w;
-          const y = Math.random() * h;
-          const b = Math.random() * 20 + 10;
-          ctx.fillStyle = `rgba(${b}, ${b}, ${b}, 0.1)`;
+          const x = Math.random() * w,
+            y = Math.random() * h,
+            b = Math.random() * 20 + 10;
+          ctx.fillStyle = `rgba(${b},${b},${b},0.1)`;
           ctx.fillRect(x, y, 2, 2);
         }
-        const gradient = ctx.createRadialGradient(
-          w / 2,
-          h / 2,
-          w * 0.3,
-          w / 2,
-          h / 2,
-          w * 0.8
-        );
-        gradient.addColorStop(0, "transparent");
-        gradient.addColorStop(1, "rgba(0,0,0,0.8)");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, w, h);
       }
 
-      function createPolaroid(imgUrl, dateText) {
+      function createPolaroid(url, txt) {
         const id = Date.now();
-        const polaroid = document.createElement("div");
-        polaroid.className =
+        const div = document.createElement("div");
+        div.className =
           "absolute bg-[#fdfdfd] shadow-lg p-3 flex flex-col items-center justify-start in-printer developing draggable";
-        polaroid.style.width = "160px";
-        polaroid.style.height = "240px";
-        polaroid.style.paddingBottom = "30px";
-        polaroid.id = `photo-${id}`;
+        div.style.width = "160px";
+        div.style.height = "240px";
+        div.style.paddingBottom = "30px";
+        div.id = `photo-${id}`;
 
-        const img = document.createElement("img");
-        img.src = imgUrl;
-        img.className =
-          "w-full aspect-[3/4] object-cover bg-gray-900 pointer-events-none select-none";
-        img.draggable = false;
+        div.innerHTML = `<img src="${url}" class="w-full aspect-[3/4] object-cover bg-gray-900 pointer-events-none select-none" draggable="false">
+                             <div class="handwritten text-gray-600 text-xs mt-3 text-center w-full leading-tight pointer-events-none select-none">${txt}</div>`;
 
-        const label = document.createElement("div");
-        label.className =
-          "handwritten text-gray-600 text-xs mt-3 text-center w-full leading-tight pointer-events-none select-none";
-        label.innerText = dateText;
-
-        polaroid.appendChild(img);
-        polaroid.appendChild(label);
-        printerSlot.appendChild(polaroid);
-
-        setTimeout(() => polaroid.classList.add("ejecting"), 200);
-
-        polaroid.addEventListener("mousedown", startDrag);
-        polaroid.addEventListener("touchstart", startDrag, { passive: false });
-        polaroid.addEventListener("click", (e) => e.stopPropagation());
+        printerSlot.appendChild(div);
+        setTimeout(() => div.classList.add("ejecting"), 200);
+        div.addEventListener("mousedown", startDrag);
+        div.addEventListener("touchstart", startDrag, { passive: false });
+        div.addEventListener("click", (e) => e.stopPropagation());
       }
 
-      // --- DRAG LOGIC ---
+      // --- DRAG ---
       function startDrag(e) {
         if (e.type === "touchstart") e.preventDefault();
         initAudioContext();
         dragItem = e.currentTarget;
         isDragging = false;
-        const clientX =
-          e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
-        const clientY =
-          e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
-        startPos = { x: clientX, y: clientY };
-        const rect = dragItem.getBoundingClientRect();
-        dragOffset.x = clientX - rect.left;
-        dragOffset.y = clientY - rect.top;
+        const cx = e.type.includes("touch") ? e.touches[0].clientX : e.clientX;
+        const cy = e.type.includes("touch") ? e.touches[0].clientY : e.clientY;
+        startPos = { x: cx, y: cy };
+        const r = dragItem.getBoundingClientRect();
+        dragOffset = { x: cx - r.left, y: cy - r.top };
         selectPhoto(dragItem);
-        zIndexCounter++;
-        dragItem.style.zIndex = zIndexCounter;
+        dragItem.style.zIndex = ++zIndexCounter;
         document.addEventListener("mousemove", onDrag);
         document.addEventListener("mouseup", stopDrag);
         document.addEventListener("touchmove", onDrag, { passive: false });
         document.addEventListener("touchend", stopDrag);
       }
-
       function onDrag(e) {
         if (!dragItem) return;
         if (e.type === "touchmove") e.preventDefault();
-        const clientX =
-          e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
-        const clientY =
-          e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+        const cx = e.type.includes("touch") ? e.touches[0].clientX : e.clientX;
+        const cy = e.type.includes("touch") ? e.touches[0].clientY : e.clientY;
         if (!isDragging) {
-          const dx = Math.abs(clientX - startPos.x);
-          const dy = Math.abs(clientY - startPos.y);
-          if (dx > 3 || dy > 3) {
+          if (Math.abs(cx - startPos.x) > 3 || Math.abs(cy - startPos.y) > 3) {
             isDragging = true;
             dragItem.classList.add("is-dragging");
             if (dragItem.parentNode !== document.body) {
-              const rect = dragItem.getBoundingClientRect();
-              dragItem.style.left = `${rect.left}px`;
-              dragItem.style.top = `${rect.top}px`;
+              const r = dragItem.getBoundingClientRect();
+              dragItem.style.left = `${r.left}px`;
+              dragItem.style.top = `${r.top}px`;
               dragItem.style.transform = "none";
               dragItem.classList.remove("ejecting", "in-printer", "developing");
               document.body.appendChild(dragItem);
@@ -637,25 +704,18 @@
           }
         }
         if (isDragging) {
-          dragItem.style.left = `${clientX - dragOffset.x}px`;
-          dragItem.style.top = `${clientY - dragOffset.y}px`;
+          dragItem.style.left = `${cx - dragOffset.x}px`;
+          dragItem.style.top = `${cy - dragOffset.y}px`;
         }
       }
-
-      function stopDrag(e) {
+      function stopDrag() {
         if (!dragItem) return;
         dragItem.classList.remove("is-dragging");
         if (isDragging) {
-          const galleryRect = galleryZone.getBoundingClientRect();
-          const itemRect = dragItem.getBoundingClientRect();
-          const itemCenter = {
-            x: itemRect.left + itemRect.width / 2,
-            y: itemRect.top + itemRect.height / 2,
-          };
-          if (itemCenter.x > galleryRect.left) {
-            const randomRot = Math.random() * 8 - 4;
-            dragItem.style.transform = `rotate(${randomRot}deg)`;
-          }
+          const gr = galleryZone.getBoundingClientRect();
+          const ir = dragItem.getBoundingClientRect();
+          if (ir.left + ir.width / 2 > gr.left)
+            dragItem.style.transform = `rotate(${Math.random() * 8 - 4}deg)`;
         }
         dragItem = null;
         document.removeEventListener("mousemove", onDrag);
@@ -685,62 +745,58 @@
         deleteBtn.disabled = !has;
         if (has) deleteBtn.classList.remove("hidden");
       }
-      function deleteSelectedPhoto() {
+
+      document.addEventListener("mousedown", (e) => {
+        if (
+          !e.target.closest(".draggable") &&
+          !e.target.closest("button") &&
+          !e.target.closest("input") &&
+          !e.target.closest("#prompts-modal")
+        )
+          deselectAll();
+      });
+
+      deleteBtn.addEventListener("click", () => {
         if (selectedPhotoId) {
           const el = document.getElementById(selectedPhotoId);
           if (el) {
-            el.style.transition = "transform 0.2s, opacity 0.2s";
+            el.style.transition = "all 0.2s";
             el.style.transform = "scale(0.5)";
             el.style.opacity = "0";
             setTimeout(() => el.remove(), 200);
           }
           deselectAll();
         }
-      }
-      document.addEventListener("mousedown", (e) => {
-        if (
-          !e.target.closest(".draggable") &&
-          !e.target.closest("button") &&
-          !e.target.closest("input")
-        )
-          deselectAll();
       });
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Delete" || e.key === "Backspace") deleteSelectedPhoto();
-      });
-      deleteBtn.addEventListener("click", deleteSelectedPhoto);
+
       downloadBtn.addEventListener("click", () => {
-        if (selectedPhotoId)
-          downloadPolaroid(document.getElementById(selectedPhotoId));
+        if (selectedPhotoId) {
+          const el = document.getElementById(selectedPhotoId);
+          const cvs = document.getElementById("render-canvas");
+          const ctx = cvs.getContext("2d");
+          const img = el.querySelector("img");
+          const txt = el.querySelector(".handwritten").innerText;
+          const W = 600,
+            H = 860,
+            P = 40;
+          cvs.width = W;
+          cvs.height = H;
+          ctx.fillStyle = "#fdfdfd";
+          ctx.fillRect(0, 0, W, H);
+          const iW = W - 80,
+            iH = iW * (4 / 3);
+          ctx.drawImage(img, P, P, iW, iH);
+          ctx.fillStyle = "#333";
+          ctx.font = '40px "Permanent Marker"';
+          ctx.textAlign = "center";
+          ctx.fillText(txt, W / 2, H - 60);
+          const a = document.createElement("a");
+          a.download = `polaroid-${Date.now()}.png`;
+          a.href = cvs.toDataURL();
+          a.click();
+        }
       });
 
-      function downloadPolaroid(element) {
-        const canvas = document.getElementById("render-canvas");
-        const ctx = canvas.getContext("2d");
-        const img = element.querySelector("img");
-        const text = element.innerText;
-        const cardWidth = 600;
-        const cardHeight = 860;
-        const padding = 40;
-        canvas.width = cardWidth;
-        canvas.height = cardHeight;
-        ctx.fillStyle = "#fdfdfd";
-        ctx.fillRect(0, 0, cardWidth, cardHeight);
-        const imgWidth = cardWidth - 40 - padding * 2;
-        const imgHeight = imgWidth * (4 / 3);
-        ctx.drawImage(img, 20 + padding, 20 + padding, imgWidth, imgHeight);
-        ctx.fillStyle = "#333333";
-        ctx.font = '40px "Permanent Marker", cursive';
-        ctx.textAlign = "center";
-        ctx.fillText(text, cardWidth / 2, cardHeight - 60);
-        const link = document.createElement("a");
-        link.download = `polaroid-${Date.now()}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      }
-
-      // Start execution immediately to fix positioning
-      applyCalibration();
       initCamera();
       window.addEventListener("resize", applyCalibration);
     </script>
