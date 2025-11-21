@@ -81,7 +81,7 @@ const stages = [trailsStage, mainStage];
 const randomWords = [""];
 const wordDotsMap = {};
 randomWords.forEach((word) => {
-	wordDotsMap[word] = MyMath.literalLattice(word, 3, "Gabriola,华文琥珀", "90px");
+	wordDotsMap[word] = MyMath.literalLattice(word, 3, "Gabriola", "90px");
 });
 
 // 自定义背景
@@ -1700,7 +1700,7 @@ function getWordDots(word) {
 	//随机字体大小 60~130
 	var fontSize = Math.floor(Math.random() * 70 + 60);
 
-	var res = MyMath.literalLattice(word, 3, "Gabriola,华文琥珀", fontSize + "px");
+	var res = MyMath.literalLattice(word, 3, "Gabriola", fontSize + "px");
 
 	return res;
 }
