@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>円形に広がるダークモード切り替え</title>
+    
+    <!-- Highlight.js 的样式文件 (Atom One Dark Theme) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+
+    <style>
+        :root {
+            /* ライトモードの変数 */
+            --bg-color: #ffffff;
+            --text-color: #1a1a1a;
+            --card-bg: #f3f4f6;
+            --button-bg: #1a1a1a;
+            --button-text: #ffffff;
+            --accent-color: #3b82f6;
+            --code-bg: #282c34; /* Highlight.js background */
+        }
+
+        /* ダークモードの変数 - class="dark" で有効化 */
+        html.dark {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --card-bg: #2d2d2d;
+            --button-bg: #ffffff;
+            --button-text: #1a1a1a;
+            --accent-color: #60a5fa;
+            --code-bg: #1e2127;
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: color 0.2s, background-color 0.2s; /* 通常要素の滑らかな遷移 */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+
+        .container {
+            text-align: center;
+            padding: 1rem;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            line-height: 1.6;
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .toggle-btn {
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.1s;
+            margin-bottom: 2rem;
+        }
+
+        .toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 代码块样式调整 */
+        pre {
+            text-align: left;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 0;
+            background-color: var(--code-bg);
+        }
+        
+        code {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* コアCSS：View Transitions API アニメーション制御 */
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation: none;
+            mix-blend-mode: normal;
+        }
+
+        ::view-transition-new(root) {
+            z-index: 2147483646;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>円形ダークモード</h1>
+        
+        <button class="toggle-btn" onclick="toggleTheme(event)">
+            <span>🌓</span> モード切替 (ここをクリック)
+        </button>
+
+        <div class="card">
+            <h2>デモについて</h2>
+            <p>
+                上のボタンをクリックすると、ダークモードへの切り替えが単なるフェードイン・アウトではなく、
+                クリックした位置を中心として円形に広がり、画面全体を覆うアニメーションで表示されます。
+            </p>
+            <p style="color: var(--accent-color); font-weight: bold;">
+                使用技術：View Transitions API + clip-path
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>コア・コード (JavaScript)</h2>
+            <p>以下は、このエフェクトを実現するための実際のJavaScriptコードです。</p>
+            <pre><code class="language-javascript">// 1. View Transition API をサポートしているか確認
+if (!document.startViewTransition) {
+    html.classList.toggle('dark');
+    return;
+}
+
+// 2. View Transition を開始
+const transition = document.startViewTransition(() => {
+    html.classList.toggle('dark');
+});
+
+// 3. 準備ができたら円形アニメーションを実行
+transition.ready.then(() => {
+    // クリック位置（または画面中央）を取得
+    const x = event.clientX ?? window.innerWidth / 2;
+    const y = event.clientY ?? window.innerHeight / 2;
+
+    // 最も遠い角までの距離を計算（半径）
+    const endRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+    );
+
+    // clip-path アニメーションを実行
+    document.documentElement.animate(
+        {
+            clipPath: [
+                `circle(0px at ${x}px ${y}px)`,
+                `circle(${endRadius}px at ${x}px ${y}px)`
+            ]
+        },
+        {
+            duration: 500,
+            easing: 'ease-in',
+            pseudoElement: '::view-transition-new(root)'
+        }
+    );
+});</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>コア・コード (CSS)</h2>
+            <p>View Transitions API のデフォルトのフェード効果を無効化し、JSで制御するために必須のCSSです。</p>
+            <pre><code class="language-css">/* ブラウザ標準のフェードイン・アウトを無効化 */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+/* 新しいビュー（円形に広がる方）を常に前面に表示 */
+::view-transition-new(root) {
+    z-index: 2147483646;
+}
+
+/* ダークモード変数の定義例 */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #1a1a1a;
+}
+
+html.dark {
+    --bg-color: #1a1a1a;
+    --text-color: #ffffff;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.2s; /* 通常時の変化 */
+}</code></pre>
+        </div>
+
+        <div class="card">
+            <h2>コア・コード (HTML)</h2>
+            <p>HTML構造は非常にシンプルです。</p>
+            <pre><code class="language-html">&lt;!-- ダークモードのクラスは &lt;html&gt; タグに付与されます --&gt;
+&lt;html class=&quot;&quot;&gt;
+  &lt;body&gt;
+    &lt;!-- クリックイベントを渡すために event 引数が必要です --&gt;
+    &lt;button onclick=&quot;toggleTheme(event)&quot;&gt;
+      モード切替
+    &lt;/button&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+        </div>
+    </div>
+
+    <!-- Highlight.js ライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        // コードハイライトを初期化
+        hljs.highlightAll();
+
+        function toggleTheme(event) {
+            const html = document.documentElement;
+
+            if (!document.startViewTransition) {
+                console.log('お使いのブラウザは View Transitions API をサポートしていません');
+                html.classList.toggle('dark');
+                return;
+            }
+
+            const transition = document.startViewTransition(() => {
+                html.classList.toggle('dark');
+            });
+
+            transition.ready.then(() => {
+                const x = event.clientX ?? window.innerWidth / 2;
+                const y = event.clientY ?? window.innerHeight / 2;
+
+                const endRadius = Math.hypot(
+                    Math.max(x, window.innerWidth - x),
+                    Math.max(y, window.innerHeight - y)
+                );
+
+                document.documentElement.animate(
+                    {
+                        clipPath: [
+                            `circle(0px at ${x}px ${y}px)`,
+                            `circle(${endRadius}px at ${x}px ${y}px)`
+                        ]
+                    },
+                    {
+                        duration: 500,
+                        easing: 'ease-in',
+                        pseudoElement: '::view-transition-new(root)'
+                    }
+                );
+            });
+        }
+    </script>
+</body>
+</html>
