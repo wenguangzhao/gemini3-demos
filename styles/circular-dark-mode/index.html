@@ -5,202 +5,154 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>円形に広がるダークモード切り替え</title>
     
+    <!-- Tailwind CSS v3.4 CDN (更为稳定，支持配置) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // 显式配置 Tailwind 使用 class 策略切换暗黑模式
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+
     <!-- Highlight.js 的样式文件 (Atom One Dark Theme) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 
     <style>
-        :root {
-            /* ライトモードの変数 */
-            --bg-color: #ffffff;
-            --text-color: #1a1a1a;
-            --card-bg: #f3f4f6;
-            --button-bg: #1a1a1a;
-            --button-text: #ffffff;
-            --accent-color: #3b82f6;
-            --code-bg: #282c34;
-            --highlight-bg: #e2e8f0;
-        }
+        /* Tailwind では擬似要素 ::view-transition などを制御するのが難しいため、
+           ここだけは通常のCSSとして残します。
+        */
 
-        /* ダークモードの変数 */
-        html.dark {
-            --bg-color: #1a1a1a;
-            --text-color: #ffffff;
-            --card-bg: #2d2d2d;
-            --button-bg: #ffffff;
-            --button-text: #1a1a1a;
-            --accent-color: #60a5fa;
-            --code-bg: #1e2127;
-            --highlight-bg: #374151;
-        }
-
-        * {
-            box-sizing: border-box;
-            transition: color 0.2s, background-color 0.2s;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding-top: 3rem;
-            padding-bottom: 3rem;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 800px;
-            padding: 0 1.5rem;
-        }
-
-        h1 {
-            font-size: 2.2rem;
-            margin-bottom: 0.5rem;
-            text-align: center;
-        }
-        
-        .subtitle {
-            text-align: center;
-            opacity: 0.7;
-            margin-bottom: 2rem;
-        }
-
-        /* デモボタンのスタイル */
-        .demo-area {
-            text-align: center;
-            margin-bottom: 3rem;
-            padding: 2rem;
-            background: var(--highlight-bg);
-            border-radius: 1rem;
-        }
-
-        .toggle-btn {
-            background-color: var(--button-bg);
-            color: var(--button-text);
-            border: none;
-            padding: 1rem 2.5rem;
-            font-size: 1.3rem;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            transition: transform 0.1s;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .toggle-btn:active {
-            transform: scale(0.95);
-        }
-
-        /* 説明カードのスタイル */
-        .card {
-            background-color: var(--card-bg);
-            padding: 2rem;
-            border-radius: 1rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .card h2 {
-            margin-top: 0;
-            font-size: 1.4rem;
-            border-left: 5px solid var(--accent-color);
-            padding-left: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .card h3 {
-            font-size: 1.1rem;
-            margin-top: 1.5rem;
-            margin-bottom: 0.8rem;
-            color: var(--accent-color);
-        }
-
-        .card p, .card li {
-            line-height: 1.7;
-            opacity: 0.9;
-            margin-bottom: 1rem;
-        }
-
-        ul {
-            padding-left: 1.5rem;
-        }
-
-        /* コードブロック */
-        pre {
-            border-radius: 8px;
-            overflow: hidden;
-            margin: 1rem 0;
-            background-color: var(--code-bg);
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
-        }
-        
-        code {
-            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-
-        /* コアCSS：View Transitions API アニメーション制御 */
+        /* デフォルトのアニメーション（opacityのフェード）を無効化 */
         ::view-transition-old(root),
         ::view-transition-new(root) {
             animation: none;
             mix-blend-mode: normal;
         }
 
+        /* 「新しいビュー（ダークモード後の画像）」を一番上に表示 */
         ::view-transition-new(root) {
             z-index: 2147483646;
         }
+
+        /* ベースのトランジションを設定 
+           拡散アニメーション以外の通常の色の変化も滑らかにする
+        */
+        body {
+            transition: background-color 0.2s, color 0.2s;
+        }
     </style>
 </head>
-<body>
+<body class="flex justify-center items-center min-h-screen py-12 bg-white text-gray-900 dark:bg-gray-900 dark:text-white font-sans transition-colors duration-200">
 
-    <div class="container">
-        <h1>円形拡散ダークモード</h1>
-        <p class="subtitle">View Transitions API を使用した高度なUI演出</p>
+    <div class="w-full max-w-3xl px-6">
+        <h1 class="text-4xl font-bold mb-2 text-center">円形拡散ダークモード</h1>
+        <p class="text-center opacity-70 mb-12">View Transitions API を使用した高度なUI演出</p>
         
         <!-- デモエリア -->
-        <div class="demo-area">
-            <p style="margin-bottom: 1rem; font-weight: bold;">👇 ここをクリックして体験してください</p>
-            <button class="toggle-btn" onclick="toggleTheme(event)">
+        <div class="text-center mb-12 p-10 bg-slate-100 dark:bg-slate-800 rounded-2xl shadow-inner transition-colors duration-200">
+            <p class="mb-4 font-bold text-lg">👇 ここをクリックして体験してください</p>
+            <button class="toggle-btn bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-10 py-4 text-xl rounded-full cursor-pointer font-bold inline-flex items-center gap-3 transition-transform active:scale-95 shadow-lg hover:shadow-xl" onclick="toggleTheme(event)">
                 <span>🌓</span> モード切替
             </button>
         </div>
 
         <!-- 原理説明 -->
-        <div class="card">
-            <h2>仕組みと原理 (Mechanism)</h2>
-            <p>
+        <div class="bg-gray-50 dark:bg-gray-800 p-8 rounded-2xl mb-8 shadow-sm transition-colors duration-200">
+            <h2 class="text-2xl font-bold mt-0 border-l-4 border-blue-500 pl-4 mb-6">仕組みと原理 (Mechanism)</h2>
+            <p class="leading-relaxed opacity-90 mb-4">
                 このエフェクトは、ブラウザ標準の <strong>View Transitions API</strong> を使用しています。
                 従来のように `div` を被せるのではなく、ブラウザが生成する「画面のスクリーンショット」を操作することで、
                 非常に滑らかで高パフォーマンスなアニメーションを実現しています。
             </p>
             
-            <h3>処理の流れ (Workflow)</h3>
-            <ul>
-                <li><strong>1. 撮影 (Snapshot Old):</strong> APIが呼ばれると、ブラウザは現在の画面（変更前）を撮影し、一時停止します。</li>
-                <li><strong>2. 更新 (Update DOM):</strong> 裏側で `class="dark"` を付与し、実際にテーマを切り替えます。</li>
-                <li><strong>3. 撮影 (Snapshot New):</strong> 切り替え後の新しい画面を撮影します。</li>
-                <li><strong>4. アニメーション (Animation):</strong> 古い画像の上に新しい画像を重ね、`clip-path`（切り抜き）を使って円形に広げます。</li>
-            </ul>
+            <h3 class="text-lg font-bold mt-8 mb-4 text-blue-500 border-b border-gray-400/20 pb-2">詳細なタイムライン (Detailed Timeline)</h3>
+            
+            <!-- Timeline Container: pl-6 (24px) + border-l-2 (2px) -->
+            <div class="relative pl-6 border-l-2 border-blue-500 mt-6 ml-2">
+                <!-- 
+                   位置調整の計算:
+                   Border center is at ~1px relative to container left.
+                   Content starts at 2px (border) + 24px (padding) = 26px.
+                   Offset to border center = 1px - 26px = -25px.
+                   Circle center (w-4/2 = 8px) needs to be at -25px.
+                   Left position = -25px - 8px = -33px.
+                -->
+
+                <!-- Step 1 -->
+                <div class="relative mb-10">
+                    <div class="absolute -left-[33px] top-1 w-4 h-4 bg-gray-50 dark:bg-gray-800 border-2 border-blue-500 rounded-full z-10"></div>
+                    <span class="inline-block text-xs bg-blue-500 text-white px-2 py-0.5 rounded mb-2">Start (0ms)</span>
+                    <strong class="block text-lg mb-2">1. API呼び出し & 古いスナップショット撮影</strong>
+                    <p class="leading-relaxed opacity-90"><code>startViewTransition()</code> が呼ばれた瞬間、ブラウザは画面を操作不能（フリーズ）にし、現在の「ライトモード」の状態を撮影します。これが <code>::view-transition-old</code> になります。</p>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="relative mb-10">
+                    <div class="absolute -left-[33px] top-1 w-4 h-4 bg-gray-50 dark:bg-gray-800 border-2 border-blue-500 rounded-full z-10"></div>
+                    <span class="inline-block text-xs bg-blue-500 text-white px-2 py-0.5 rounded mb-2">Processing (~10ms)</span>
+                    <strong class="block text-lg mb-2">2. DOMの更新 & スタイル再計算</strong>
+                    <p class="leading-relaxed opacity-90">コールバック関数内で <code>html.classList.toggle</code> が実行され、DOMはダークモードに変わります。<strong>重要：</strong>この時点ではまだ画面には「古いスナップショット」が表示されているため、ユーザーは変化に気づきません。</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative mb-10">
+                    <div class="absolute -left-[33px] top-1 w-4 h-4 bg-gray-50 dark:bg-gray-800 border-2 border-blue-500 rounded-full z-10"></div>
+                    <span class="inline-block text-xs bg-blue-500 text-white px-2 py-0.5 rounded mb-2">Snapshot (~20ms)</span>
+                    <strong class="block text-lg mb-2">3. 新しいスナップショット撮影</strong>
+                    <p class="leading-relaxed opacity-90">DOMの更新とブラウザのスタイル計算が完了した直後、ブラウザは裏側で完成した「ダークモード」の画面を撮影します。これが <code>::view-transition-new</code> になります。</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="relative">
+                    <div class="absolute -left-[33px] top-1 w-4 h-4 bg-gray-50 dark:bg-gray-800 border-2 border-blue-500 rounded-full z-10"></div>
+                    <span class="inline-block text-xs bg-blue-500 text-white px-2 py-0.5 rounded mb-2">Animation Start</span>
+                    <strong class="block text-lg mb-2">4. アニメーション開始 (transition.ready)</strong>
+                    <p class="leading-relaxed opacity-90">2枚の写真が揃いました。ブラウザはこれらを重ねて表示します。ここでJSの <code>animate()</code> が発火し、新しい黒い画像を円形に広げ始めます。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- よくある疑問 (Deep Dive) -->
+        <div class="bg-gray-50 dark:bg-gray-800 p-8 rounded-2xl mb-8 shadow-sm transition-colors duration-200">
+            <h2 class="text-2xl font-bold mt-0 border-l-4 border-blue-500 pl-4 mb-6">よくある疑問と核心概念 (Deep Dive)</h2>
+            
+            <div class="bg-black/5 dark:bg-white/5 border-l-4 border-indigo-400 p-4 mb-6 rounded-r-lg">
+                <span class="font-bold block mb-2 text-indigo-500 dark:text-indigo-400">Q1. <code>document.documentElement.animate</code> と書いてありますが、<code>&lt;html&gt;</code> タグ自体が動くのですか？</span>
+                <p class="leading-relaxed opacity-90">
+                    いいえ、違います。これは非常に誤解しやすい点です。<br>
+                    擬似要素（スクリーンショット）は JavaScript で直接取得できないため、親要素であるルート要素を通して<strong>「遠隔操作」</strong>しています。<br>
+                    コード内の <code>pseudoElement: '::view-transition-new(root)'</code> という指定が、「リモコンの信号の宛先」だと考えてください。
+                </p>
+            </div>
+
+            <div class="bg-black/5 dark:bg-white/5 border-l-4 border-indigo-400 p-4 mb-6 rounded-r-lg">
+                <span class="font-bold block mb-2 text-indigo-500 dark:text-indigo-400">Q2. なぜ「新しい画面」を広げるのですか？「古い画面」に穴を開けないのはなぜ？</span>
+                <p class="leading-relaxed opacity-90">
+                    これは CSS の <code>clip-path</code> の性質によるものです。<br>
+                    <code>clip-path</code> は「指定した形の内側を<strong>残す</strong>（外側を捨てる）」という「足し算」の仕組みです。<br>
+                    そのため、最前面にある「黒い画面」を点(0%)から全体(100%)へ広げる方が、実装が圧倒的にシンプルで、パフォーマンスも優れています。
+                    逆に「白い画面に穴を開ける（外側を残して内側を捨てる）」処理は CSS では複雑になりがちです。
+                </p>
+            </div>
+
+            <div class="bg-black/5 dark:bg-white/5 border-l-4 border-indigo-400 p-4 mb-6 rounded-r-lg">
+                <span class="font-bold block mb-2 text-indigo-500 dark:text-indigo-400">Q3. アニメーション中のレイヤー構造はどうなっていますか？</span>
+                <p class="leading-relaxed opacity-90">
+                    Photoshop のレイヤー構造と同じです。<br>
+                    1. <strong>下層：</strong> <code>::view-transition-old</code>（白い画像）<br>
+                    2. <strong>上層：</strong> <code>::view-transition-new</code>（黒い画像）<br>
+                    3. <strong>最下層（不可視）：</strong> 本物のDOM（操作不可）<br>
+                    <br>
+                    上層にある「黒い画像」を円形に切り抜くことで、その切り抜き部分から黒い色が見え、その外側には下層の白い色が見える状態を作っています。
+                </p>
+            </div>
         </div>
 
         <!-- JavaScript 解説 -->
-        <div class="card">
-            <h2>JavaScript の実装詳細</h2>
-            <p>
-                クリックした座標を取得し、三平方の定理で「画面を覆い尽くすのに必要な半径」を計算するのがポイントです。
-            </p>
-
-            <h3>1. イベント座標の取得と計算</h3>
-            <pre><code class="language-javascript">// マウスイベント(event)を受け取ります
+        <div class="bg-gray-50 dark:bg-gray-800 p-8 rounded-2xl mb-8 shadow-sm transition-colors duration-200">
+            <h2 class="text-2xl font-bold mt-0 border-l-4 border-blue-500 pl-4 mb-6">JavaScript の実装詳細</h2>
+            <p class="mb-4">クリック座標からアニメーションを作成する部分の完全なコードです。</p>
+            <pre class="rounded-lg overflow-hidden shadow-inner text-sm"><code class="language-javascript">// マウスイベント(event)を受け取ります
 function toggleTheme(event) {
     const html = document.documentElement;
 
@@ -230,41 +182,28 @@ function toggleTheme(event) {
             Math.max(y, window.innerHeight - y)
         );
 
-        // 次のステップでこの値をアニメーションに使います...
+        // document.documentElement に対して animate を呼び出しますが...
+        document.documentElement.animate(
+            {
+                clipPath: [
+                    `circle(0px at ${x}px ${y}px)`,
+                    `circle(${endRadius}px at ${x}px ${y}px)`
+                ]
+            },
+            {
+                duration: 500,
+                easing: 'ease-in',
+                // 【重要】ここで「誰を動かすか」を指名しています
+                // <html>タグではなく、ブラウザが生成した「新しいスナップショット」を操作します
+                pseudoElement: '::view-transition-new(root)'
+            }
+        );
     });
 }</code></pre>
 
-            <h3>2. clip-path アニメーションの実行</h3>
-            <pre><code class="language-javascript">// ...続き (transition.ready.then の中)
-
-// document.documentElement に対してアニメーションを実行
-// ただし、対象は擬似要素 ::view-transition-new(root) です
-document.documentElement.animate(
-    {
-        // clip-path: 要素を切り抜くプロパティ
-        // circle(半径 at 中心X 中心Y)
-        clipPath: [
-            `circle(0px at ${x}px ${y}px)`,      // 開始：半径0px（見えない）
-            `circle(${endRadius}px at ${x}px ${y}px)` // 終了：画面全体を覆う半径
-        ]
-    },
-    {
-        duration: 500,        // アニメーション時間：500ms
-        easing: 'ease-in',    // 加速しながら広がる
-        // ここで「新しい画面のスナップショット」をターゲットに指定します
-        pseudoElement: '::view-transition-new(root)'
-    }
-);</code></pre>
-        </div>
-
-        <!-- CSS 解説 -->
-        <div class="card">
-            <h2>CSS の設定 (重要)</h2>
-            <p>
-                JavaScriptだけでは動きません。CSSでブラウザのデフォルト挙動（フェードイン・フェードアウト）を無効化し、
-                レイヤーの重なり順を制御する必要があります。
-            </p>
-            <pre><code class="language-css">/* デフォルトのアニメーション（opacityのフェード）を無効化します。
+            <h3 class="text-lg font-bold mt-8 mb-4 text-blue-500 border-b border-gray-400/20 pb-2">CSS (Core)</h3>
+            <p class="mb-4">Tailwind を使用していても、以下のCSSは必須です。</p>
+            <pre class="rounded-lg overflow-hidden shadow-inner text-sm"><code class="language-css">/* デフォルトのアニメーション（opacityのフェード）を無効化します。
   これを行わないと、円形拡散と同時にフェード効果が重なってしまいます。
 */
 ::view-transition-old(root),
