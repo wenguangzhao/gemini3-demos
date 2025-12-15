@@ -17,10 +17,11 @@
             --button-bg: #1a1a1a;
             --button-text: #ffffff;
             --accent-color: #3b82f6;
-            --code-bg: #282c34; /* Highlight.js background */
+            --code-bg: #282c34;
+            --highlight-bg: #e2e8f0;
         }
 
-        /* ダークモードの変数 - class="dark" で有効化 */
+        /* ダークモードの変数 */
         html.dark {
             --bg-color: #1a1a1a;
             --text-color: #ffffff;
@@ -29,11 +30,12 @@
             --button-text: #1a1a1a;
             --accent-color: #60a5fa;
             --code-bg: #1e2127;
+            --highlight-bg: #374151;
         }
 
         * {
             box-sizing: border-box;
-            transition: color 0.2s, background-color 0.2s; /* 通常要素の滑らかな遷移 */
+            transition: color 0.2s, background-color 0.2s;
         }
 
         body {
@@ -46,79 +48,104 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding-top: 2rem;
-            padding-bottom: 2rem;
+            padding-top: 3rem;
+            padding-bottom: 3rem;
         }
 
         .container {
-            text-align: center;
-            padding: 1rem;
-            max-width: 700px;
             width: 100%;
+            max-width: 800px;
+            padding: 0 1.5rem;
         }
 
         h1 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
         }
-
-        p {
-            line-height: 1.6;
-            opacity: 0.8;
-            margin-bottom: 1.5rem;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            padding: 2rem;
-            border-radius: 1rem;
+        
+        .subtitle {
+            text-align: center;
+            opacity: 0.7;
             margin-bottom: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            text-align: left;
         }
 
-        .card h2 {
-            margin-top: 0;
-            font-size: 1.2rem;
-            border-bottom: 2px solid var(--accent-color);
-            padding-bottom: 0.5rem;
-            display: inline-block;
-            margin-bottom: 1rem;
+        /* デモボタンのスタイル */
+        .demo-area {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: var(--highlight-bg);
+            border-radius: 1rem;
         }
 
         .toggle-btn {
             background-color: var(--button-bg);
             color: var(--button-text);
             border: none;
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
+            padding: 1rem 2.5rem;
+            font-size: 1.3rem;
             border-radius: 50px;
             cursor: pointer;
             font-weight: bold;
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             transition: transform 0.1s;
-            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .toggle-btn:active {
             transform: scale(0.95);
         }
 
-        /* 代码块样式调整 */
+        /* 説明カードのスタイル */
+        .card {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.4rem;
+            border-left: 5px solid var(--accent-color);
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+            color: var(--accent-color);
+        }
+
+        .card p, .card li {
+            line-height: 1.7;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+        }
+
+        /* コードブロック */
         pre {
-            text-align: left;
             border-radius: 8px;
             overflow: hidden;
-            margin: 0;
+            margin: 1rem 0;
             background-color: var(--code-bg);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
         }
         
         code {
             font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-            font-size: 0.85rem;
-            line-height: 1.5;
+            font-size: 0.9rem;
+            line-height: 1.6;
         }
 
         /* コアCSS：View Transitions API アニメーション制御 */
@@ -136,111 +163,122 @@
 <body>
 
     <div class="container">
-        <h1>円形ダークモード</h1>
+        <h1>円形拡散ダークモード</h1>
+        <p class="subtitle">View Transitions API を使用した高度なUI演出</p>
         
-        <button class="toggle-btn" onclick="toggleTheme(event)">
-            <span>🌓</span> モード切替 (ここをクリック)
-        </button>
+        <!-- デモエリア -->
+        <div class="demo-area">
+            <p style="margin-bottom: 1rem; font-weight: bold;">👇 ここをクリックして体験してください</p>
+            <button class="toggle-btn" onclick="toggleTheme(event)">
+                <span>🌓</span> モード切替
+            </button>
+        </div>
 
+        <!-- 原理説明 -->
         <div class="card">
-            <h2>デモについて</h2>
+            <h2>仕組みと原理 (Mechanism)</h2>
             <p>
-                上のボタンをクリックすると、ダークモードへの切り替えが単なるフェードイン・アウトではなく、
-                クリックした位置を中心として円形に広がり、画面全体を覆うアニメーションで表示されます。
+                このエフェクトは、ブラウザ標準の <strong>View Transitions API</strong> を使用しています。
+                従来のように `div` を被せるのではなく、ブラウザが生成する「画面のスクリーンショット」を操作することで、
+                非常に滑らかで高パフォーマンスなアニメーションを実現しています。
             </p>
-            <p style="color: var(--accent-color); font-weight: bold;">
-                使用技術：View Transitions API + clip-path
-            </p>
+            
+            <h3>処理の流れ (Workflow)</h3>
+            <ul>
+                <li><strong>1. 撮影 (Snapshot Old):</strong> APIが呼ばれると、ブラウザは現在の画面（変更前）を撮影し、一時停止します。</li>
+                <li><strong>2. 更新 (Update DOM):</strong> 裏側で `class="dark"` を付与し、実際にテーマを切り替えます。</li>
+                <li><strong>3. 撮影 (Snapshot New):</strong> 切り替え後の新しい画面を撮影します。</li>
+                <li><strong>4. アニメーション (Animation):</strong> 古い画像の上に新しい画像を重ね、`clip-path`（切り抜き）を使って円形に広げます。</li>
+            </ul>
         </div>
 
+        <!-- JavaScript 解説 -->
         <div class="card">
-            <h2>コア・コード (JavaScript)</h2>
-            <p>以下は、このエフェクトを実現するための実際のJavaScriptコードです。</p>
-            <pre><code class="language-javascript">// 1. View Transition API をサポートしているか確認
-if (!document.startViewTransition) {
-    html.classList.toggle('dark');
-    return;
-}
+            <h2>JavaScript の実装詳細</h2>
+            <p>
+                クリックした座標を取得し、三平方の定理で「画面を覆い尽くすのに必要な半径」を計算するのがポイントです。
+            </p>
 
-// 2. View Transition を開始
-const transition = document.startViewTransition(() => {
-    html.classList.toggle('dark');
-});
+            <h3>1. イベント座標の取得と計算</h3>
+            <pre><code class="language-javascript">// マウスイベント(event)を受け取ります
+function toggleTheme(event) {
+    const html = document.documentElement;
 
-// 3. 準備ができたら円形アニメーションを実行
-transition.ready.then(() => {
-    // クリック位置（または画面中央）を取得
-    const x = event.clientX ?? window.innerWidth / 2;
-    const y = event.clientY ?? window.innerHeight / 2;
+    // ブラウザが View Transitions API に対応していない場合のフォールバック
+    if (!document.startViewTransition) {
+        console.log('API非対応ブラウザです');
+        html.classList.toggle('dark');
+        return;
+    }
 
-    // 最も遠い角までの距離を計算（半径）
-    const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y)
-    );
+    // ビュー遷移を開始：このコールバック内でDOMを更新します
+    const transition = document.startViewTransition(() => {
+        html.classList.toggle('dark');
+    });
 
-    // clip-path アニメーションを実行
-    document.documentElement.animate(
-        {
-            clipPath: [
-                `circle(0px at ${x}px ${y}px)`,
-                `circle(${endRadius}px at ${x}px ${y}px)`
-            ]
-        },
-        {
-            duration: 500,
-            easing: 'ease-in',
-            pseudoElement: '::view-transition-new(root)'
-        }
-    );
-});</code></pre>
+    // 準備完了（スナップショット生成完了）後にアニメーションを実行
+    transition.ready.then(() => {
+        // クリック位置（x, y）を取得。キーボード操作なら画面中央とする
+        const x = event.clientX ?? window.innerWidth / 2;
+        const y = event.clientY ?? window.innerHeight / 2;
+
+        // 【重要】円の最大半径を計算
+        // クリック位置から、画面の四隅のうち「最も遠い角」までの距離を求めます
+        // Math.hypot は三平方の定理（直角三角形の斜辺）を計算する関数です
+        const endRadius = Math.hypot(
+            Math.max(x, window.innerWidth - x),
+            Math.max(y, window.innerHeight - y)
+        );
+
+        // 次のステップでこの値をアニメーションに使います...
+    });
+}</code></pre>
+
+            <h3>2. clip-path アニメーションの実行</h3>
+            <pre><code class="language-javascript">// ...続き (transition.ready.then の中)
+
+// document.documentElement に対してアニメーションを実行
+// ただし、対象は擬似要素 ::view-transition-new(root) です
+document.documentElement.animate(
+    {
+        // clip-path: 要素を切り抜くプロパティ
+        // circle(半径 at 中心X 中心Y)
+        clipPath: [
+            `circle(0px at ${x}px ${y}px)`,      // 開始：半径0px（見えない）
+            `circle(${endRadius}px at ${x}px ${y}px)` // 終了：画面全体を覆う半径
+        ]
+    },
+    {
+        duration: 500,        // アニメーション時間：500ms
+        easing: 'ease-in',    // 加速しながら広がる
+        // ここで「新しい画面のスナップショット」をターゲットに指定します
+        pseudoElement: '::view-transition-new(root)'
+    }
+);</code></pre>
         </div>
 
+        <!-- CSS 解説 -->
         <div class="card">
-            <h2>コア・コード (CSS)</h2>
-            <p>View Transitions API のデフォルトのフェード効果を無効化し、JSで制御するために必須のCSSです。</p>
-            <pre><code class="language-css">/* ブラウザ標準のフェードイン・アウトを無効化 */
+            <h2>CSS の設定 (重要)</h2>
+            <p>
+                JavaScriptだけでは動きません。CSSでブラウザのデフォルト挙動（フェードイン・フェードアウト）を無効化し、
+                レイヤーの重なり順を制御する必要があります。
+            </p>
+            <pre><code class="language-css">/* デフォルトのアニメーション（opacityのフェード）を無効化します。
+  これを行わないと、円形拡散と同時にフェード効果が重なってしまいます。
+*/
 ::view-transition-old(root),
 ::view-transition-new(root) {
     animation: none;
     mix-blend-mode: normal;
 }
 
-/* 新しいビュー（円形に広がる方）を常に前面に表示 */
+/* 「新しいビュー（ダークモード後の画像）」を一番上に表示します。
+  これから円形に広がっていく主役のレイヤーです。
+*/
 ::view-transition-new(root) {
-    z-index: 2147483646;
-}
-
-/* ダークモード変数の定義例 */
-:root {
-    --bg-color: #ffffff;
-    --text-color: #1a1a1a;
-}
-
-html.dark {
-    --bg-color: #1a1a1a;
-    --text-color: #ffffff;
-}
-
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    transition: background-color 0.2s; /* 通常時の変化 */
+    z-index: 2147483646; /* 非常に大きな値を設定 */
 }</code></pre>
-        </div>
-
-        <div class="card">
-            <h2>コア・コード (HTML)</h2>
-            <p>HTML構造は非常にシンプルです。</p>
-            <pre><code class="language-html">&lt;!-- ダークモードのクラスは &lt;html&gt; タグに付与されます --&gt;
-&lt;html class=&quot;&quot;&gt;
-  &lt;body&gt;
-    &lt;!-- クリックイベントを渡すために event 引数が必要です --&gt;
-    &lt;button onclick=&quot;toggleTheme(event)&quot;&gt;
-      モード切替
-    &lt;/button&gt;
-  &lt;/body&gt;
-&lt;/html&gt;</code></pre>
         </div>
     </div>
 
@@ -254,7 +292,6 @@ body {
             const html = document.documentElement;
 
             if (!document.startViewTransition) {
-                console.log('お使いのブラウザは View Transitions API をサポートしていません');
                 html.classList.toggle('dark');
                 return;
             }
