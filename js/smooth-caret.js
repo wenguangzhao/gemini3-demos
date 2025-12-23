@@ -152,7 +152,7 @@
         this.cursor.style.left = `${x + window.scrollX}px`;
         this.cursor.style.top = `${y + window.scrollY}px`;
         this.cursor.style.height = `${h}px`;
-        this.cursor.style.transform = `translateY(0.1em)`;
+        this.cursor.style.transform = `translateY(0em)`;
       }
     }
 
